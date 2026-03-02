@@ -2,100 +2,2831 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Travel Planner</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voyage - Travel Planner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --bg-primary: #faf9f7;
+            --bg-secondary: #ffffff;
+            --bg-hover: #f5f3f0;
+            --text-primary: #1a1816;
+            --text-secondary: #6b6460;
+            --text-tertiary: #9c958f;
+            --border-light: #e8e4df;
+            --border-medium: #d6cfc7;
+            --accent-warm: #d97757;
+            --accent-warm-light: #f3e8e3;
+            --accent-sky: #5b9aa9;
+            --accent-sky-light: #e3f0f3;
+            --shadow-sm: 0 1px 3px rgba(26, 24, 22, 0.04);
+            --shadow-md: 0 4px 12px rgba(26, 24, 22, 0.08);
+            --shadow-lg: 0 12px 32px rgba(26, 24, 22, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .page {
+            display: none;
+            min-height: 100vh;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Homepage Styles */
+        .homepage {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 48px 32px;
+        }
+
+        .homepage-header {
+            margin-bottom: 48px;
+        }
+
+        .homepage-title {
+            font-family: 'Fraunces', serif;
+            font-size: 48px;
+            font-weight: 600;
+            font-style: italic;
+            color: var(--accent-warm);
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        .homepage-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+
+        .trips-section {
+            margin-bottom: 64px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .create-trip-btn {
+            padding: 12px 24px;
+            background: var(--text-primary);
+            color: var(--bg-secondary);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .create-trip-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .trips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .trip-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .trip-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent-warm);
+        }
+
+        .trip-card-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, var(--accent-warm-light), var(--accent-sky-light));
+        }
+
+        .trip-card-content {
+            padding: 24px;
+        }
+
+        .trip-card-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .trip-card-dates {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .trip-card-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .trip-card-stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Memory Journal Page */
+        .memory-journal-page {
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #faf9f7 0%, #f5f3f0 100%);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .memory-header {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 48px 32px 32px;
+        }
+
+        .memory-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 32px;
+        }
+
+        .memory-back-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            transform: translateX(-4px);
+        }
+
+        .memory-title-section {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .memory-trip-name {
+            font-family: 'Fraunces', serif;
+            font-size: 48px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        .memory-trip-dates {
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+
+        /* Stepping Stones Path */
+        .stepping-stones-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px 64px;
+            position: relative;
+        }
+
+        .path-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(to bottom, 
+                var(--accent-warm) 0%, 
+                var(--accent-sky) 50%, 
+                var(--accent-warm) 100%);
+            opacity: 0.3;
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+
+        .stone {
+            position: relative;
+            margin-bottom: 80px;
+            animation: fadeInStone 0.6s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeInStone {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .stone:nth-child(even) {
+            padding-left: calc(50% + 60px);
+        }
+
+        .stone:nth-child(odd) {
+            padding-right: calc(50% + 60px);
+        }
+
+        .stone-marker {
+            position: absolute;
+            top: 24px;
+            width: 40px;
+            height: 40px;
+            background: var(--bg-secondary);
+            border: 3px solid var(--accent-warm);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            z-index: 2;
+            box-shadow: var(--shadow-md);
+        }
+
+        .stone:nth-child(even) .stone-marker {
+            left: calc(50% - 20px);
+        }
+
+        .stone:nth-child(odd) .stone-marker {
+            right: calc(50% - 20px);
+        }
+
+        .stone-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .stone-content:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .stone:nth-child(odd) .stone-content {
+            border-top-right-radius: 4px;
+        }
+
+        .stone:nth-child(even) .stone-content {
+            border-top-left-radius: 4px;
+        }
+
+        .stone-date {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-warm);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 16px;
+        }
+
+        .stone-title {
+            font-family: 'Fraunces', serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .stone-notes {
+            font-size: 15px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+        }
+
+        .stone-photos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .stone-photo {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .stone-photo:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stone-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .stone-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .stone-btn {
+            flex: 1;
+            padding: 10px 16px;
+            background: transparent;
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+        }
+
+        .stone-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-warm);
+        }
+
+        .add-memory-btn {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            width: 64px;
+            height: 64px;
+            background: var(--accent-warm);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-memory-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 8px 24px rgba(217, 119, 87, 0.4);
+        }
+
+        .empty-memories {
+            text-align: center;
+            padding: 80px 32px;
+            color: var(--text-tertiary);
+        }
+
+        .empty-memories-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-memories-text {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .empty-memories-subtext {
+            font-size: 14px;
+            color: var(--text-tertiary);
+        }
+
+        /* Photo Map View */
+        .map-view-btn {
+            padding: 12px 24px;
+            background: var(--accent-sky);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 32px;
+        }
+
+        .map-view-btn:hover {
+            background: #4a8694;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .photo-map-container {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 48px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .map-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        #map {
+            width: 100%;
+            height: 500px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-light);
+        }
+
+        .map-marker {
+            background: var(--accent-warm);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .map-marker:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Location Photos Overlay */
+        .location-photos-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 24, 22, 0.9);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 24px;
+        }
+
+        .location-photos-overlay.active {
+            display: flex;
+        }
+
+        .location-photos-panel {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 1000px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .location-photos-header {
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .location-name {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .location-photo-count {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .location-photos-grid {
+            padding: 32px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .location-photo-item {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .location-photo-item:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .location-photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .location-photo-date {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(26, 24, 22, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Auth Pages */
+        .auth-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--accent-warm-light) 0%, var(--accent-sky-light) 100%);
+            padding: 24px;
+        }
+
+        .auth-container {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 48px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .auth-logo {
+            font-family: 'Fraunces', serif;
+            font-size: 42px;
+            font-weight: 600;
+            font-style: italic;
+            color: var(--accent-warm);
+            text-align: center;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        .auth-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 32px;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .auth-input {
+            padding: 14px 18px;
+            border: 1px solid var(--border-medium);
+            border-radius: 10px;
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 0 3px var(--accent-warm-light);
+        }
+
+        .auth-btn {
+            padding: 14px 24px;
+            background: var(--text-primary);
+            color: var(--bg-secondary);
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 12px;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .auth-link {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .auth-link a {
+            color: var(--accent-warm);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-link a:hover {
+            text-decoration: underline;
+        }
+
+        .privacy-toggle {
+            background: var(--bg-primary);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .privacy-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .privacy-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-medium);
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--accent-warm);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+
+        .settings-btn {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+
+        .settings-btn:hover {
+            background: var(--bg-hover);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Memory Modal */
+        .memory-modal .modal {
+            max-width: 600px;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 280px 1fr 360px;
+            min-height: 100vh;
+            gap: 1px;
+            background: var(--border-light);
+        }
+
+        /* Back button */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 24px;
+        }
+
+        .back-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-secondary);
+            padding: 24px;
+            overflow-y: auto;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .logo {
+            font-family: 'Fraunces', serif;
+            font-size: 28px;
+            font-weight: 600;
+            font-style: italic;
+            color: var(--accent-warm);
+            margin-bottom: 32px;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-section {
+            margin-bottom: 32px;
+        }
+
+        .nav-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+
+        .trip-list {
+            list-style: none;
+        }
+
+        .trip-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+            border: 1px solid transparent;
+        }
+
+        .trip-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-light);
+        }
+
+        .trip-item.active {
+            background: var(--accent-warm-light);
+            border-color: var(--accent-warm);
+        }
+
+        .trip-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .trip-dates {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .new-trip-btn {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--text-primary);
+            color: var(--bg-secondary);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 16px;
+        }
+
+        .new-trip-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Calendar Main */
+        .calendar-main {
+            background: var(--bg-secondary);
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .calendar-header-image {
+            width: calc(100% + 64px);
+            height: 240px;
+            margin: -32px -32px 32px -32px;
+            object-fit: cover;
+            border-radius: 0;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .calendar-title {
+            font-family: 'Fraunces', serif;
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .month-nav {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .month-label {
+            font-size: 18px;
+            font-weight: 500;
+            min-width: 160px;
+            text-align: center;
+        }
+
+        .nav-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border-medium);
+            background: var(--bg-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .nav-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-tertiary);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-tertiary);
+            padding: 12px 0;
+        }
+
+        .day-cell {
+            aspect-ratio: 1;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .day-cell:hover {
+            border-color: var(--accent-warm);
+            box-shadow: var(--shadow-sm);
+            transform: translateY(-2px);
+        }
+
+        .day-cell.has-plans {
+            background: linear-gradient(135deg, var(--accent-warm-light) 0%, var(--accent-sky-light) 100%);
+            border-color: var(--accent-warm);
+        }
+
+        .day-cell.other-month {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .day-cell.selected {
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 0 3px var(--accent-warm-light);
+        }
+
+        .day-number {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .day-preview {
+            font-size: 10px;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .plan-indicator {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            width: 6px;
+            height: 6px;
+            background: var(--accent-warm);
+            border-radius: 50%;
+        }
+
+        /* Details Panel */
+        .details-panel {
+            background: var(--bg-secondary);
+            padding: 32px 24px;
+            overflow-y: auto;
+            border-left: 1px solid var(--border-light);
+        }
+
+        .details-header {
+            margin-bottom: 24px;
+        }
+
+        .selected-date {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .date-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .add-activity-btn {
+            width: 100%;
+            padding: 12px 16px;
+            background: transparent;
+            color: var(--accent-warm);
+            border: 2px dashed var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 24px;
+        }
+
+        .add-activity-btn:hover {
+            border-color: var(--accent-warm);
+            background: var(--accent-warm-light);
+        }
+
+        .activities-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .activity-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s ease;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .activity-card:hover {
+            box-shadow: var(--shadow-sm);
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+        }
+
+        .activity-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .activity-notes {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .activity-image {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .activity-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .activity-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .activity-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Day Detail Overlay */
+        .day-detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 24, 22, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.2s ease;
+            padding: 24px;
+        }
+
+        .day-detail-overlay.active {
+            display: flex;
+        }
+
+        .day-detail-panel {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .day-detail-header {
+            padding: 32px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .day-detail-title-section {
+            flex: 1;
+        }
+
+        .day-detail-date {
+            font-family: 'Fraunces', serif;
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .day-detail-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .close-detail-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid var(--border-medium);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--text-tertiary);
+        }
+
+        .close-detail-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-tertiary);
+            color: var(--text-primary);
+        }
+
+        .day-detail-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+        }
+
+        .day-detail-section {
+            margin-bottom: 32px;
+        }
+
+        .day-detail-section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notes-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 16px;
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.2s ease;
+            background: var(--bg-secondary);
+        }
+
+        .notes-textarea:focus {
+            outline: none;
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 0 3px var(--accent-warm-light);
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .photo-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .photo-item:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-md);
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            background: rgba(26, 24, 22, 0.8);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .photo-item:hover .photo-delete {
+            opacity: 1;
+        }
+
+        .add-photo-btn {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            color: var(--accent-warm);
+            border: 2px dashed var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .add-photo-btn:hover {
+            border-color: var(--accent-warm);
+            background: var(--accent-warm-light);
+        }
+
+        .links-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .link-item:hover {
+            border-color: var(--accent-warm);
+        }
+
+        .link-icon {
+            font-size: 18px;
+        }
+
+        .link-content {
+            flex: 1;
+        }
+
+        .link-url {
+            font-size: 14px;
+            color: var(--accent-warm);
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .link-url:hover {
+            text-decoration: underline;
+        }
+
+        .link-delete {
+            width: 28px;
+            height: 28px;
+            background: transparent;
+            border: 1px solid var(--border-medium);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-tertiary);
+            transition: all 0.2s ease;
+        }
+
+        .link-delete:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .add-link-form {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-link-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .add-link-input:focus {
+            outline: none;
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 0 3px var(--accent-warm-light);
+        }
+
+        .add-link-btn {
+            padding: 12px 24px;
+            background: var(--text-primary);
+            color: var(--bg-secondary);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .add-link-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 24, 22, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            animation: fadeIn 0.2s ease;
+            padding: 24px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-title {
+            font-family: 'Fraunces', serif;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            background: var(--bg-secondary);
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 0 3px var(--accent-warm-light);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .image-upload {
+            border: 2px dashed var(--border-medium);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .image-upload:hover {
+            border-color: var(--accent-warm);
+            background: var(--accent-warm-light);
+        }
+
+        .image-upload input {
+            display: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .modal-btn-primary {
+            background: var(--text-primary);
+            color: var(--bg-secondary);
+        }
+
+        .modal-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .modal-btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-medium);
+            color: var(--text-primary);
+        }
+
+        .modal-btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-medium);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        @media (max-width: 1200px) {
+            .app-container {
+                grid-template-columns: 240px 1fr 320px;
+            }
+        }
+
+        @media (max-width: 968px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .details-panel {
+                position: fixed;
+                right: -100%;
+                top: 0;
+                bottom: 0;
+                width: 360px;
+                z-index: 100;
+                transition: right 0.3s ease;
+                box-shadow: var(--shadow-lg);
+            }
+
+            .details-panel.active {
+                right: 0;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- Login Page -->
+    <div id="loginPage" class="page auth-page active">
+        <div class="auth-container">
+            <div class="auth-logo">Voyage</div>
+            <p class="auth-subtitle">Welcome back, traveler</p>
+            <form class="auth-form" onsubmit="login(event)">
+                <input type="email" class="auth-input" placeholder="Email" required id="loginEmail">
+                <input type="password" class="auth-input" placeholder="Password" required id="loginPassword">
+                <button type="submit" class="auth-btn">Log In</button>
+            </form>
+            <div class="auth-link">
+                Don't have an account? <a href="#" onclick="showPage('signupPage'); return false;">Sign up</a>
+            </div>
+        </div>
+    </div>
 
-<div id="auth-section">
-    <h2>Login</h2>
-    <input type="email" id="login-email" placeholder="Email" />
-    <input type="password" id="login-password" placeholder="Password" />
-    <button onclick="handleLogin()">Login</button>
+    <!-- Signup Page -->
+    <div id="signupPage" class="page auth-page">
+        <div class="auth-container">
+            <div class="auth-logo">Voyage</div>
+            <p class="auth-subtitle">Start your journey</p>
+            <form class="auth-form" onsubmit="signup(event)">
+                <input type="text" class="auth-input" placeholder="Full Name" required id="signupName">
+                <input type="email" class="auth-input" placeholder="Email" required id="signupEmail">
+                <input type="password" class="auth-input" placeholder="Password" required id="signupPassword">
+                <div class="privacy-toggle">
+                    <div>
+                        <div class="privacy-label">Make my profile public</div>
+                        <div class="privacy-description">Others can see your trips and memories</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="profilePublic">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <button type="submit" class="auth-btn">Create Account</button>
+            </form>
+            <div class="auth-link">
+                Already have an account? <a href="#" onclick="showPage('loginPage'); return false;">Log in</a>
+            </div>
+        </div>
+    </div>
 
-    <h2>Sign Up</h2>
-    <input type="email" id="signup-email" placeholder="Email" />
-    <input type="password" id="signup-password" placeholder="Password" />
-    <button onclick="handleSignup()">Sign Up</button>
-</div>
+    <!-- Homepage -->
+    <div id="homepage" class="page">
+        <button class="settings-btn" onclick="logout()">⚙️ Settings & Logout</button>
+        <div class="homepage">
+            <div class="homepage-header">
+                <h1 class="homepage-title">Voyage</h1>
+                <p class="homepage-subtitle" id="welcomeMessage">Plan your adventures, one day at a time</p>
+            </div>
 
-<div id="app-section" style="display:none;">
-    <h2>Welcome to Travel Planner</h2>
-    <button onclick="handleLogout()">Logout</button>
-</div>
+            <div class="trips-section">
+                <div class="section-header">
+                    <h2 class="section-title">Your Trips</h2>
+                    <button class="create-trip-btn" onclick="openCreateTripModal()">+ Create Trip</button>
+                </div>
+                <div class="trips-grid" id="tripsGrid">
+                    <!-- Trip cards will be generated here -->
+                </div>
+            </div>
 
-<script>
-    const SUPABASE_URL = "YOUR_SUPABASE_URL";
-    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+            <div class="trips-section">
+                <div class="section-header">
+                    <h2 class="section-title">Memory Lane</h2>
+                    <p style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Relive your adventures</p>
+                </div>
+                <div class="trips-grid" id="pastTripsGrid">
+                    <!-- Past trip cards will be generated here -->
+                </div>
+            </div>
+        </div>
+    </div>
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <!-- Calendar Page -->
+    <div id="calendarPage" class="page">
+        <div class="app-container">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="logo">Voyage</div>
+                
+                <button class="back-btn" onclick="goToHomepage()">← Back to Trips</button>
+                
+                <div class="nav-section">
+                    <div class="nav-title" id="sidebarTripTitle">Trip Details</div>
+                    <div id="tripInfo" style="padding: 12px; background: var(--bg-primary); border-radius: 8px; margin-top: 12px;">
+                        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Destination</div>
+                        <div id="tripDestination" style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">Loading...</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Dates</div>
+                        <div id="tripDates" style="font-size: 14px; font-weight: 500;">Loading...</div>
+                    </div>
+                </div>
+            </div>
 
-    const authSection = document.getElementById("auth-section");
-    const appSection = document.getElementById("app-section");
+            <!-- Calendar Main -->
+            <div class="calendar-main">
+                <button class="back-btn" onclick="goToHomepage()" style="margin-bottom: 24px;">← Back to Home</button>
+                
+                <img id="calendarHeaderImage" class="calendar-header-image" style="display: none;" alt="Trip header">
+                
+                <div class="calendar-header">
+                    <h1 class="calendar-title" id="calendarTripTitle">Trip Calendar</h1>
+                    <div class="month-nav">
+                        <button class="nav-btn" onclick="previousMonth()">‹</button>
+                        <span class="month-label" id="currentMonth">March 2025</span>
+                        <button class="nav-btn" onclick="nextMonth()">›</button>
+                    </div>
+                </div>
 
-    function showApp() {
-        authSection.style.display = "none";
-        appSection.style.display = "block";
-    }
+                <div class="calendar-grid" id="calendarGrid">
+                    <div class="weekday">Sun</div>
+                    <div class="weekday">Mon</div>
+                    <div class="weekday">Tue</div>
+                    <div class="weekday">Wed</div>
+                    <div class="weekday">Thu</div>
+                    <div class="weekday">Fri</div>
+                    <div class="weekday">Sat</div>
+                </div>
+            </div>
 
-    function showAuth() {
-        authSection.style.display = "block";
-        appSection.style.display = "none";
-    }
+            <!-- Details Panel -->
+            <div class="details-panel" id="detailsPanel">
+                <div class="details-header">
+                    <div class="selected-date" id="selectedDate">Select a day</div>
+                    <div class="date-subtitle">Click any day to view details</div>
+                </div>
 
-    async function handleLogin() {
-        const email = document.getElementById("login-email").value;
-        const password = document.getElementById("login-password").value;
+                <button class="add-activity-btn" onclick="openDayDetail()">View Day Details</button>
 
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password
+                <div class="activities-list" id="activitiesList">
+                    <div style="text-align: center; padding: 32px; color: var(--text-tertiary);">
+                        Select a day to start planning
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memory Journal Page -->
+    <div id="memoryJournalPage" class="page memory-journal-page">
+        <div class="memory-header">
+            <button class="memory-back-btn" onclick="goToHomepage()">← Back to Home</button>
+            
+            <div class="memory-title-section">
+                <h1 class="memory-trip-name" id="memoryTripName">Trip Memories</h1>
+                <p class="memory-trip-dates" id="memoryTripDates">Loading...</p>
+            </div>
+
+            <div style="text-align: center;">
+                <button class="map-view-btn" id="toggleMapBtn" onclick="toggleMapView()">
+                    🗺️ Show Photo Map
+                </button>
+            </div>
+        </div>
+
+        <div class="stepping-stones-container">
+            <!-- Photo Map Container -->
+            <div class="photo-map-container" id="photoMapContainer" style="display: none;">
+                <div class="map-header">
+                    <div class="map-title">📍 Photos by Location</div>
+                </div>
+                <div id="map"></div>
+            </div>
+
+            <div class="path-line"></div>
+            <div id="stonesContainer">
+                <!-- Stones will be generated here -->
+            </div>
+        </div>
+
+        <button class="add-memory-btn" onclick="openAddMemoryModal()">+</button>
+    </div>
+
+    <!-- Location Photos Overlay -->
+    <div class="location-photos-overlay" id="locationPhotosOverlay">
+        <div class="location-photos-panel">
+            <div class="location-photos-header">
+                <div>
+                    <div class="location-name" id="locationName">Location</div>
+                    <div class="location-photo-count" id="locationPhotoCount">0 photos</div>
+                </div>
+                <button class="close-detail-btn" onclick="closeLocationPhotos()">×</button>
+            </div>
+            <div class="location-photos-grid" id="locationPhotosGrid">
+                <!-- Photos will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Day Detail Overlay -->
+    <div class="day-detail-overlay" id="dayDetailOverlay">
+        <div class="day-detail-panel">
+            <div class="day-detail-header">
+                <div class="day-detail-title-section">
+                    <div class="day-detail-date" id="dayDetailDate">March 15, 2025</div>
+                    <div class="day-detail-subtitle" id="dayDetailSubtitle">Day 1 of your trip</div>
+                </div>
+                <button class="close-detail-btn" onclick="closeDayDetail()">×</button>
+            </div>
+
+            <div class="day-detail-content">
+                <div class="day-detail-section">
+                    <div class="day-detail-section-title">📝 Notes</div>
+                    <textarea 
+                        class="notes-textarea" 
+                        id="dayNotes" 
+                        placeholder="Add your thoughts, plans, or memories for this day..."
+                        onchange="saveDayNotes()"
+                    ></textarea>
+                </div>
+
+                <div class="day-detail-section">
+                    <div class="day-detail-section-title">📸 Photos</div>
+                    <div class="photo-grid" id="photoGrid">
+                        <!-- Photos will be added here -->
+                    </div>
+                    <button class="add-photo-btn" onclick="document.getElementById('photoInput').click()">
+                        + Add Photo
+                    </button>
+                    <input type="file" id="photoInput" accept="image/*" multiple style="display: none;" onchange="handlePhotoUpload(event)">
+                </div>
+
+                <div class="day-detail-section">
+                    <div class="day-detail-section-title">🔗 Links</div>
+                    <div class="links-list" id="linksList">
+                        <!-- Links will be added here -->
+                    </div>
+                    <div class="add-link-form">
+                        <input 
+                            type="url" 
+                            class="add-link-input" 
+                            id="linkInput" 
+                            placeholder="Paste a link (restaurant, hotel, activity...)"
+                        >
+                        <button class="add-link-btn" onclick="addLink()">Add</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Trip Modal -->
+    <div class="modal-overlay" id="createTripModal">
+        <div class="modal">
+            <h2 class="modal-title">Create New Trip</h2>
+            <form id="createTripForm" onsubmit="createTrip(event)">
+                <div class="form-group">
+                    <label class="form-label">Destination</label>
+                    <input type="text" class="form-input" id="tripDestination" placeholder="e.g., Tokyo, Japan" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-input" id="tripStartDate" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-input" id="tripEndDate" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cover Image (Optional)</label>
+                    <div class="image-upload" onclick="document.getElementById('tripImageInput').click()">
+                        <input type="file" id="tripImageInput" accept="image/*" onchange="handleTripImageUpload(event)">
+                        <div id="tripImageUploadText">📸 Click to upload cover image</div>
+                    </div>
+                    <img id="tripImagePreview" style="width: 100%; margin-top: 12px; border-radius: 8px; display: none;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Calendar Header Image (Optional)</label>
+                    <div class="image-upload" onclick="document.getElementById('tripHeaderInput').click()">
+                        <input type="file" id="tripHeaderInput" accept="image/*" onchange="handleTripHeaderUpload(event)">
+                        <div id="tripHeaderUploadText">📸 Click to upload header image</div>
+                    </div>
+                    <img id="tripHeaderPreview" style="width: 100%; margin-top: 12px; border-radius: 8px; display: none;">
+                </div>
+                <div class="form-group">
+                    <div class="privacy-toggle">
+                        <div>
+                            <div class="privacy-label">Make this trip private</div>
+                            <div class="privacy-description">Only you can see this trip</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="tripPrivate">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="modal-btn modal-btn-secondary" onclick="closeModal('createTripModal')">Cancel</button>
+                    <button type="submit" class="modal-btn modal-btn-primary">Create Trip</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Memory Modal -->
+    <div class="modal-overlay memory-modal" id="addMemoryModal">
+        <div class="modal">
+            <h2 class="modal-title">Add Memory</h2>
+            <form id="addMemoryForm" onsubmit="saveMemory(event)">
+                <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-input" id="memoryDate" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Title (Optional)</label>
+                    <input type="text" class="form-input" id="memoryTitle" placeholder="e.g., Morning at the Temple">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Memory</label>
+                    <textarea class="form-textarea" id="memoryNotes" placeholder="What made this moment special?" style="min-height: 150px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Photos (Optional)</label>
+                    <div class="image-upload" onclick="document.getElementById('memoryPhotosInput').click()">
+                        <input type="file" id="memoryPhotosInput" accept="image/*" multiple onchange="handleMemoryPhotosUpload(event)">
+                        <div id="memoryPhotosUploadText">📸 Click to upload photos</div>
+                    </div>
+                    <div id="memoryPhotosPreview" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px;"></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="modal-btn modal-btn-secondary" onclick="closeModal('addMemoryModal')">Cancel</button>
+                    <button type="submit" class="modal-btn modal-btn-primary">Save Memory</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    <script>
+        // App State
+        let currentUser = null;
+        
+        let currentPage = 'loginPage';
+        let trips = [];
+        
+        let pastTrips = [];
+        
+        let currentTrip = null;
+        let currentMemoryTrip = null;
+        let currentDate = new Date(2025, 2, 1);
+        let selectedDate = null;
+        let currentTripImageData = null;
+        let currentTripHeaderData = null;
+        let currentMemoryPhotos = [];
+        let photoMap = null;
+        let mapMarkers = [];
+        let locationPhotoGroups = {};
+
+        // Authentication
+        function login(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const user = users.find(u => u.email === email && u.password === password);
+            if (user) {
+                currentUser = user;
+                trips = user.trips || [];
+                pastTrips = user.pastTrips || [];
+                
+                document.getElementById('welcomeMessage').textContent = `Welcome back, ${user.name}!`;
+                showPage('homepage');
+                renderHomepage();
+            } else {
+                alert('Invalid email or password');
+            }
+        }
+
+        function signup(event) {
+            event.preventDefault();
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const isPublic = document.getElementById('profilePublic').checked;
+
+            if (users.find(u => u.email === email)) {
+                alert('An account with this email already exists');
+                return;
+            }
+
+            const newUser = {
+                id: Date.now(),
+                name: name,
+                email: email,
+                password: password,
+                isPublic: isPublic,
+                trips: [
+                    {
+                        id: 1,
+                        destination: 'Tokyo, Japan',
+                        startDate: '2025-03-15',
+                        endDate: '2025-03-22',
+                        image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&h=400&fit=crop',
+                        headerImage: 'https://images.unsplash.com/photo-1513407030348-c983a97b98d8?w=1200&h=400&fit=crop',
+                        days: {},
+                        isPrivate: false
+                    }
+                ],
+                pastTrips: [
+                    {
+                        id: 101,
+                        destination: 'Barcelona, Spain',
+                        startDate: '2024-09-10',
+                        endDate: '2024-09-17',
+                        image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=600&h=400&fit=crop',
+                        headerImage: 'https://images.unsplash.com/photo-1562883676-8c7feb83f09b?w=1200&h=400&fit=crop',
+                        isPrivate: false,
+                        memories: []
+                    }
+                ]
+            };
+
+            users.push(newUser);
+            currentUser = newUser;
+            trips = newUser.trips;
+            pastTrips = newUser.pastTrips;
+
+            document.getElementById('welcomeMessage').textContent = `Welcome, ${name}!`;
+            showPage('homepage');
+            renderHomepage();
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to log out?')) {
+                // Save user data back
+                if (currentUser) {
+                    currentUser.trips = trips;
+                    currentUser.pastTrips = pastTrips;
+                }
+                
+                currentUser = null;
+                trips = [];
+                pastTrips = [];
+                showPage('loginPage');
+            }
+        }
+
+        // Navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            currentPage = pageId;
+        }
+
+        function goToHomepage() {
+            showPage('homepage');
+            currentTrip = null;
+        }
+
+        function openTrip(tripId) {
+            currentTrip = trips.find(t => t.id === tripId);
+            if (!currentTrip) return;
+
+            // Set calendar to trip start date
+            const startDate = new Date(currentTrip.startDate);
+            currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+            selectedDate = null;
+
+            // Update UI
+            document.getElementById('calendarTripTitle').textContent = currentTrip.destination;
+            document.getElementById('sidebarTripTitle').textContent = currentTrip.destination;
+            document.getElementById('tripDestination').textContent = currentTrip.destination;
+            
+            const formattedDates = `${formatDate(new Date(currentTrip.startDate))} - ${formatDate(new Date(currentTrip.endDate))}`;
+            document.getElementById('tripDates').textContent = formattedDates;
+
+            // Set header image if available
+            const headerImage = document.getElementById('calendarHeaderImage');
+            if (currentTrip.headerImage) {
+                headerImage.src = currentTrip.headerImage;
+                headerImage.style.display = 'block';
+            } else {
+                headerImage.style.display = 'none';
+            }
+
+            showPage('calendarPage');
+            renderCalendar();
+        }
+
+        // Homepage
+        function renderHomepage() {
+            const grid = document.getElementById('tripsGrid');
+            grid.innerHTML = '';
+
+            trips.forEach(trip => {
+                const card = document.createElement('div');
+                card.className = 'trip-card';
+                card.onclick = () => openTrip(trip.id);
+
+                const startDate = new Date(trip.startDate);
+                const endDate = new Date(trip.endDate);
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                const dayKeys = Object.keys(trip.days || {});
+                const daysWithPlans = dayKeys.length;
+
+                card.innerHTML = `
+                    ${trip.image ? `<img src="${trip.image}" alt="${trip.destination}" class="trip-card-image">` : '<div class="trip-card-image"></div>'}
+                    <div class="trip-card-content">
+                        <div class="trip-card-title">${trip.destination}</div>
+                        <div class="trip-card-dates">${formatDate(startDate)} - ${formatDate(endDate)}</div>
+                        <div class="trip-card-stats">
+                            <div class="trip-card-stat">📅 ${days} days</div>
+                            <div class="trip-card-stat">✓ ${daysWithPlans} planned</div>
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+
+            // Render past trips
+            const pastGrid = document.getElementById('pastTripsGrid');
+            pastGrid.innerHTML = '';
+
+            pastTrips.forEach(trip => {
+                const card = document.createElement('div');
+                card.className = 'trip-card';
+                card.onclick = () => openMemoryJournal(trip.id);
+
+                const startDate = new Date(trip.startDate);
+                const endDate = new Date(trip.endDate);
+                const memoriesCount = trip.memories?.length || 0;
+
+                card.innerHTML = `
+                    ${trip.image ? `<img src="${trip.image}" alt="${trip.destination}" class="trip-card-image">` : '<div class="trip-card-image"></div>'}
+                    <div class="trip-card-content">
+                        <div class="trip-card-title">${trip.destination}</div>
+                        <div class="trip-card-dates">${formatDate(startDate)} - ${formatDate(endDate)}</div>
+                        <div class="trip-card-stats">
+                            <div class="trip-card-stat">✨ ${memoriesCount} memories</div>
+                        </div>
+                    </div>
+                `;
+
+                pastGrid.appendChild(card);
+            });
+        }
+
+        function openMemoryJournal(tripId) {
+            currentMemoryTrip = pastTrips.find(t => t.id === tripId);
+            if (!currentMemoryTrip) return;
+
+            document.getElementById('memoryTripName').textContent = currentMemoryTrip.destination;
+            const startDate = new Date(currentMemoryTrip.startDate);
+            const endDate = new Date(currentMemoryTrip.endDate);
+            document.getElementById('memoryTripDates').textContent = 
+                `${formatDate(startDate)} - ${formatDate(endDate)}`;
+
+            renderMemories();
+            showPage('memoryJournalPage');
+        }
+
+        // Calendar
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            const prevLastDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+            
+            document.getElementById('currentMonth').textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            const weekdays = grid.querySelectorAll('.weekday');
+            grid.innerHTML = '';
+            weekdays.forEach(day => grid.appendChild(day));
+
+            const firstDayOfWeek = firstDay.getDay();
+            for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+                const day = prevLastDay.getDate() - i;
+                const cell = createDayCell(day, true, currentDate.getMonth() - 1);
+                grid.appendChild(cell);
+            }
+
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const cell = createDayCell(day, false, currentDate.getMonth());
+                grid.appendChild(cell);
+            }
+
+            const remainingCells = 42 - grid.children.length + 7;
+            for (let day = 1; day <= remainingCells; day++) {
+                const cell = createDayCell(day, true, currentDate.getMonth() + 1);
+                grid.appendChild(cell);
+            }
+        }
+
+        function createDayCell(day, otherMonth, month) {
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            if (otherMonth) cell.classList.add('other-month');
+
+            const dateKey = `${currentDate.getFullYear()}-${month + 1}-${day}`;
+            const dayData = currentTrip?.days?.[dateKey];
+            const hasContent = dayData && (dayData.notes || dayData.photos?.length || dayData.links?.length);
+
+            if (hasContent) {
+                cell.classList.add('has-plans');
+            }
+
+            const isSelected = selectedDate?.getDate() === day && 
+                             selectedDate?.getMonth() === currentDate.getMonth() &&
+                             !otherMonth;
+            
+            if (isSelected) cell.classList.add('selected');
+
+            cell.innerHTML = `
+                <div class="day-number">${day}</div>
+                ${hasContent ? '<div class="day-preview">' + (dayData.notes?.substring(0, 30) || 'Has content') + '</div>' : ''}
+                ${hasContent ? '<div class="plan-indicator"></div>' : ''}
+            `;
+
+            if (!otherMonth) {
+                cell.onclick = () => selectDate(day);
+            }
+
+            return cell;
+        }
+
+        function selectDate(day) {
+            selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+            renderCalendar();
+            updateDetailsPanel();
+            openDayDetail();
+        }
+
+        function updateDetailsPanel() {
+            if (!selectedDate) return;
+
+            const dateStr = selectedDate.toLocaleDateString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+            document.getElementById('selectedDate').textContent = dateStr;
+
+            const activitiesList = document.getElementById('activitiesList');
+            activitiesList.innerHTML = `
+                <div style="text-align: center; padding: 24px; color: var(--text-secondary);">
+                    <p style="margin-bottom: 12px;">Click "View Day Details" to add notes, photos, and links for this day.</p>
+                </div>
+            `;
+        }
+
+        function previousMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        }
+
+        // Day Detail Overlay
+        function openDayDetail() {
+            if (!selectedDate || !currentTrip) return;
+
+            const dateKey = getDateKey(selectedDate);
+            const dayData = currentTrip.days[dateKey] || { notes: '', photos: [], links: [] };
+
+            document.getElementById('dayDetailDate').textContent = selectedDate.toLocaleDateString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+
+            const tripStart = new Date(currentTrip.startDate);
+            const dayNumber = Math.ceil((selectedDate - tripStart) / (1000 * 60 * 60 * 24)) + 1;
+            document.getElementById('dayDetailSubtitle').textContent = dayNumber > 0 ? `Day ${dayNumber} of your trip` : 'Plan ahead';
+
+            document.getElementById('dayNotes').value = dayData.notes || '';
+            
+            renderPhotos(dayData.photos || []);
+            renderLinks(dayData.links || []);
+
+            document.getElementById('dayDetailOverlay').classList.add('active');
+        }
+
+        function closeDayDetail() {
+            document.getElementById('dayDetailOverlay').classList.remove('active');
+            renderCalendar();
+        }
+
+        function saveDayNotes() {
+            if (!selectedDate || !currentTrip) return;
+
+            const dateKey = getDateKey(selectedDate);
+            if (!currentTrip.days[dateKey]) {
+                currentTrip.days[dateKey] = { notes: '', photos: [], links: [] };
+            }
+
+            currentTrip.days[dateKey].notes = document.getElementById('dayNotes').value;
+        }
+
+        function renderPhotos(photos) {
+            const grid = document.getElementById('photoGrid');
+            grid.innerHTML = '';
+
+            photos.forEach((photo, index) => {
+                const item = document.createElement('div');
+                item.className = 'photo-item';
+                item.innerHTML = `
+                    <img src="${photo}" alt="Photo ${index + 1}">
+                    <button class="photo-delete" onclick="deletePhoto(${index})">×</button>
+                `;
+                grid.appendChild(item);
+            });
+        }
+
+        function handlePhotoUpload(event) {
+            const files = event.target.files;
+            if (!files.length || !selectedDate || !currentTrip) return;
+
+            const dateKey = getDateKey(selectedDate);
+            if (!currentTrip.days[dateKey]) {
+                currentTrip.days[dateKey] = { notes: '', photos: [], links: [] };
+            }
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentTrip.days[dateKey].photos.push(e.target.result);
+                    renderPhotos(currentTrip.days[dateKey].photos);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            event.target.value = '';
+        }
+
+        function deletePhoto(index) {
+            if (!selectedDate || !currentTrip) return;
+
+            const dateKey = getDateKey(selectedDate);
+            if (currentTrip.days[dateKey]?.photos) {
+                currentTrip.days[dateKey].photos.splice(index, 1);
+                renderPhotos(currentTrip.days[dateKey].photos);
+            }
+        }
+
+        function renderLinks(links) {
+            const list = document.getElementById('linksList');
+            list.innerHTML = '';
+
+            links.forEach((link, index) => {
+                const item = document.createElement('div');
+                item.className = 'link-item';
+                item.innerHTML = `
+                    <div class="link-icon">🔗</div>
+                    <div class="link-content">
+                        <a href="${link}" target="_blank" class="link-url">${link}</a>
+                    </div>
+                    <button class="link-delete" onclick="deleteLink(${index})">×</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function addLink() {
+            const input = document.getElementById('linkInput');
+            const url = input.value.trim();
+            
+            if (!url || !selectedDate || !currentTrip) return;
+
+            const dateKey = getDateKey(selectedDate);
+            if (!currentTrip.days[dateKey]) {
+                currentTrip.days[dateKey] = { notes: '', photos: [], links: [] };
+            }
+
+            currentTrip.days[dateKey].links.push(url);
+            renderLinks(currentTrip.days[dateKey].links);
+            input.value = '';
+        }
+
+        function deleteLink(index) {
+            if (!selectedDate || !currentTrip) return;
+
+            const dateKey = getDateKey(selectedDate);
+            if (currentTrip.days[dateKey]?.links) {
+                currentTrip.days[dateKey].links.splice(index, 1);
+                renderLinks(currentTrip.days[dateKey].links);
+            }
+        }
+
+        // Create Trip Modal
+        function openCreateTripModal() {
+            document.getElementById('createTripModal').classList.add('active');
+            document.getElementById('createTripForm').reset();
+            document.getElementById('tripImagePreview').style.display = 'none';
+            document.getElementById('tripHeaderPreview').style.display = 'none';
+            currentTripImageData = null;
+            currentTripHeaderData = null;
+        }
+
+        function handleTripImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentTripImageData = e.target.result;
+                    const preview = document.getElementById('tripImagePreview');
+                    preview.src = currentTripImageData;
+                    preview.style.display = 'block';
+                    document.getElementById('tripImageUploadText').textContent = '✓ Cover image uploaded';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleTripHeaderUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentTripHeaderData = e.target.result;
+                    const preview = document.getElementById('tripHeaderPreview');
+                    preview.src = currentTripHeaderData;
+                    preview.style.display = 'block';
+                    document.getElementById('tripHeaderUploadText').textContent = '✓ Header image uploaded';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function createTrip(event) {
+            event.preventDefault();
+
+            const destination = document.getElementById('tripDestination').value;
+            const startDate = document.getElementById('tripStartDate').value;
+            const endDate = document.getElementById('tripEndDate').value;
+            const isPrivate = document.getElementById('tripPrivate').checked;
+
+            const newTrip = {
+                id: Date.now(),
+                destination: destination,
+                startDate: startDate,
+                endDate: endDate,
+                image: currentTripImageData,
+                headerImage: currentTripHeaderData,
+                isPrivate: isPrivate,
+                days: {}
+            };
+
+            trips.unshift(newTrip);
+            if (currentUser) {
+                currentUser.trips = trips;
+            }
+            
+            closeModal('createTripModal');
+            renderHomepage();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Utility Functions
+        function getDateKey(date) {
+            return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // Memory Journal Functions
+        function renderMemories() {
+            const container = document.getElementById('stonesContainer');
+            container.innerHTML = '';
+
+            if (!currentMemoryTrip.memories || currentMemoryTrip.memories.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-memories">
+                        <div class="empty-memories-icon">✨</div>
+                        <div class="empty-memories-text">No memories yet</div>
+                        <div class="empty-memories-subtext">Click the + button to add your first memory</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort memories by date
+            const sortedMemories = [...currentMemoryTrip.memories].sort((a, b) => 
+                new Date(a.date) - new Date(b.date)
+            );
+
+            sortedMemories.forEach((memory, index) => {
+                const stone = document.createElement('div');
+                stone.className = 'stone';
+                stone.style.animationDelay = `${index * 0.1}s`;
+
+                const memoryDate = new Date(memory.date);
+                const formattedDate = memoryDate.toLocaleDateString('en-US', { 
+                    weekday: 'long',
+                    month: 'long', 
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+
+                let photosHtml = '';
+                if (memory.photos && memory.photos.length > 0) {
+                    photosHtml = '<div class="stone-photos">';
+                    memory.photos.forEach(photo => {
+                        const photoUrl = typeof photo === 'string' ? photo : photo.url;
+                        photosHtml += `
+                            <div class="stone-photo">
+                                <img src="${photoUrl}" alt="Memory photo">
+                            </div>
+                        `;
+                    });
+                    photosHtml += '</div>';
+                }
+
+                stone.innerHTML = `
+                    <div class="stone-marker">${index + 1}</div>
+                    <div class="stone-content">
+                        <div class="stone-date">${formattedDate}</div>
+                        ${memory.title ? `<div class="stone-title">${memory.title}</div>` : ''}
+                        <div class="stone-notes">${memory.notes}</div>
+                        ${photosHtml}
+                        <div class="stone-actions">
+                            <button class="stone-btn" onclick="editMemory(${index})">Edit</button>
+                            <button class="stone-btn" onclick="deleteMemory(${index})">Delete</button>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(stone);
+            });
+        }
+
+        function openAddMemoryModal() {
+            if (!currentMemoryTrip) return;
+            
+            document.getElementById('addMemoryModal').classList.add('active');
+            document.getElementById('addMemoryForm').reset();
+            document.getElementById('memoryPhotosPreview').innerHTML = '';
+            currentMemoryPhotos = [];
+            
+            // Set default date to trip start date
+            document.getElementById('memoryDate').value = currentMemoryTrip.startDate;
+        }
+
+        async function handleMemoryPhotosUpload(event) {
+            const files = event.target.files;
+            if (!files.length) return;
+
+            const preview = document.getElementById('memoryPhotosPreview');
+            
+            for (const file of files) {
+                const geoLocation = await extractGeoLocation(file);
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const photoData = {
+                        url: e.target.result,
+                        geoLocation: geoLocation
+                    };
+                    
+                    currentMemoryPhotos.push(photoData);
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '100%';
+                    img.style.height = '100px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '8px';
+                    
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+
+            document.getElementById('memoryPhotosUploadText').textContent = 
+                `✓ ${files.length} photo${files.length > 1 ? 's' : ''} uploaded`;
+        }
+
+        function saveMemory(event) {
+            event.preventDefault();
+            
+            const date = document.getElementById('memoryDate').value;
+            const title = document.getElementById('memoryTitle').value;
+            const notes = document.getElementById('memoryNotes').value;
+
+            if (!currentMemoryTrip.memories) {
+                currentMemoryTrip.memories = [];
+            }
+
+            currentMemoryTrip.memories.push({
+                date: date,
+                title: title,
+                notes: notes,
+                photos: [...currentMemoryPhotos]
+            });
+
+            closeModal('addMemoryModal');
+            renderMemories();
+            renderHomepage(); // Update the memories count on homepage
+        }
+
+        function deleteMemory(index) {
+            if (confirm('Are you sure you want to delete this memory?')) {
+                currentMemoryTrip.memories.splice(index, 1);
+                renderMemories();
+                renderHomepage();
+            }
+        }
+
+        function editMemory(index) {
+            alert('Edit functionality - would populate form with memory data');
+        }
+
+        // Photo Map Functions
+        function toggleMapView() {
+            const mapContainer = document.getElementById('photoMapContainer');
+            const btn = document.getElementById('toggleMapBtn');
+            
+            if (mapContainer.style.display === 'none') {
+                mapContainer.style.display = 'block';
+                btn.textContent = '📋 Hide Photo Map';
+                initializePhotoMap();
+            } else {
+                mapContainer.style.display = 'none';
+                btn.textContent = '🗺️ Show Photo Map';
+            }
+        }
+
+        function initializePhotoMap() {
+            if (!photoMap) {
+                photoMap = L.map('map').setView([40.4168, -3.7038], 4); // Default to Europe center
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18
+                }).addTo(photoMap);
+            }
+
+            // Clear existing markers
+            mapMarkers.forEach(marker => photoMap.removeLayer(marker));
+            mapMarkers = [];
+            locationPhotoGroups = {};
+
+            // Process all memories with photos
+            if (!currentMemoryTrip || !currentMemoryTrip.memories) return;
+
+            let hasGeotaggedPhotos = false;
+            const bounds = [];
+
+            currentMemoryTrip.memories.forEach((memory, memoryIndex) => {
+                if (memory.photos && memory.photos.length > 0) {
+                    memory.photos.forEach((photo, photoIndex) => {
+                        if (photo.geoLocation) {
+                            hasGeotaggedPhotos = true;
+                            const { lat, lng } = photo.geoLocation;
+                            const locationKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+
+                            if (!locationPhotoGroups[locationKey]) {
+                                locationPhotoGroups[locationKey] = {
+                                    lat: lat,
+                                    lng: lng,
+                                    photos: []
+                                };
+                            }
+
+                            locationPhotoGroups[locationKey].photos.push({
+                                url: photo.url || photo,
+                                date: memory.date,
+                                title: memory.title
+                            });
+                        }
+                    });
+                }
+            });
+
+            // Create markers for each location
+            Object.entries(locationPhotoGroups).forEach(([key, location]) => {
+                const marker = L.marker([location.lat, location.lng], {
+                    icon: L.divIcon({
+                        className: 'map-marker',
+                        html: `<div class="map-marker">${location.photos.length}</div>`,
+                        iconSize: [40, 40]
+                    })
+                }).addTo(photoMap);
+
+                marker.on('click', () => openLocationPhotos(key));
+                mapMarkers.push(marker);
+                bounds.push([location.lat, location.lng]);
+            });
+
+            if (bounds.length > 0) {
+                photoMap.fitBounds(bounds, { padding: [50, 50] });
+            }
+
+            setTimeout(() => {
+                photoMap.invalidateSize();
+            }, 100);
+        }
+
+        function openLocationPhotos(locationKey) {
+            const location = locationPhotoGroups[locationKey];
+            if (!location) return;
+
+            document.getElementById('locationName').textContent = `📍 Location`;
+            document.getElementById('locationPhotoCount').textContent = `${location.photos.length} photo${location.photos.length > 1 ? 's' : ''}`;
+
+            const grid = document.getElementById('locationPhotosGrid');
+            grid.innerHTML = '';
+
+            location.photos.forEach(photo => {
+                const item = document.createElement('div');
+                item.className = 'location-photo-item';
+                
+                const date = new Date(photo.date);
+                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                item.innerHTML = `
+                    <img src="${photo.url}" alt="${photo.title || 'Memory'}">
+                    <div class="location-photo-date">${formattedDate}</div>
+                `;
+
+                grid.appendChild(item);
+            });
+
+            document.getElementById('locationPhotosOverlay').classList.add('active');
+        }
+
+        function closeLocationPhotos() {
+            document.getElementById('locationPhotosOverlay').classList.remove('active');
+        }
+
+        async function extractGeoLocation(file) {
+            return new Promise((resolve) => {
+                EXIF.getData(file, function() {
+                    const lat = EXIF.getTag(this, 'GPSLatitude');
+                    const lng = EXIF.getTag(this, 'GPSLongitude');
+                    const latRef = EXIF.getTag(this, 'GPSLatitudeRef');
+                    const lngRef = EXIF.getTag(this, 'GPSLongitudeRef');
+
+                    if (lat && lng) {
+                        const latitude = convertDMSToDD(lat, latRef);
+                        const longitude = convertDMSToDD(lng, lngRef);
+                        resolve({ lat: latitude, lng: longitude });
+                    } else {
+                        resolve(null);
+                    }
+                });
+            });
+        }
+
+        function convertDMSToDD(dms, ref) {
+            const degrees = dms[0];
+            const minutes = dms[1];
+            const seconds = dms[2];
+            
+            let dd = degrees + minutes / 60 + seconds / 3600;
+            if (ref === 'S' || ref === 'W') {
+                dd = dd * -1;
+            }
+            return dd;
+        }
+
+        // Initialize
+        // Don't auto-render - wait for login
+        // renderHomepage();
+
+        // Close modals when clicking outside
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
         });
 
-        if (error) {
-            alert(error.message);
-            return;
-        }
-
-        showApp();
-    }
-
-    async function handleSignup() {
-        const email = document.getElementById("signup-email").value;
-        const password = document.getElementById("signup-password").value;
-
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password
+        document.getElementById('dayDetailOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDayDetail();
+            }
         });
-
-        if (error) {
-            alert(error.message);
-            return;
-        }
-
-        alert("Signup successful. Please check your email if confirmation is required.");
-    }
-
-    async function handleLogout() {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            alert(error.message);
-            return;
-        }
-        showAuth();
-    }
-
-    // Check session on load
-    window.addEventListener("DOMContentLoaded", async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            showApp();
-        } else {
-            showAuth();
-        }
-    });
-</script>
-
+    </script>
 </body>
 </html>
