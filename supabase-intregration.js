@@ -20,26 +20,15 @@ async function signup(event) {
     const isPublic = document.getElementById('profilePublic').checked;
 
     try {
-        // Sign up with Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: email,
             password: password,
             options: {
-                data: {
-                    name: name
-                }
+                data: { name: name }
             }
         });
 
         if (authError) throw authError;
-
-        // Update profile with privacy setting
-        const { error: profileError } = await supabase
-            .from('profiles')
-            .update({ is_public: isPublic })
-            .eq('id', authData.user.id);
-
-        if (profileError) throw profileError;
 
         alert('Account created! Please check your email to verify your account.');
         showPage('loginPage');
@@ -64,11 +53,44 @@ async function login(event) {
 
         if (error) throw error;
 
-        await loadUserData(data.user);
+        // Get user profile
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+
+        currentUser = {
+            id: data.user.id,
+            email: data.user.email,
+            name: profile?.name || 'User',
+            isPublic: profile?.is_public || false
+        };
+
+        // Load trips
+        const { data: tripsData } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('user_id', data.user.id)
+            .eq('is_past', false);
+
+        trips = tripsData || [];
+
+        const { data: pastTripsData } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('user_id', data.user.id)
+            .eq('is_past', true);
+
+        pastTrips = pastTripsData || [];
+
+        document.getElementById('welcomeMessage').textContent = `Welcome back, ${currentUser.name}!`;
+        showPage('homepage');
+        renderHomepage();
         
     } catch (error) {
         console.error('Login error:', error);
-        alert('Invalid email or password');
+        alert('Invalid email or password: ' + error.message);
     }
 }
 
