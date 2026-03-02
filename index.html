@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Travel Planner</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div id="auth-section">
+    <h2>Login</h2>
+    <input type="email" id="login-email" placeholder="Email" />
+    <input type="password" id="login-password" placeholder="Password" />
+    <button onclick="handleLogin()">Login</button>
+
+    <h2>Sign Up</h2>
+    <input type="email" id="signup-email" placeholder="Email" />
+    <input type="password" id="signup-password" placeholder="Password" />
+    <button onclick="handleSignup()">Sign Up</button>
+</div>
+
+<div id="app-section" style="display:none;">
+    <h2>Welcome to Travel Planner</h2>
+    <button onclick="handleLogout()">Logout</button>
+</div>
+
+<script>
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const authSection = document.getElementById("auth-section");
+    const appSection = document.getElementById("app-section");
+
+    function showApp() {
+        authSection.style.display = "none";
+        appSection.style.display = "block";
+    }
+
+    function showAuth() {
+        authSection.style.display = "block";
+        appSection.style.display = "none";
+    }
+
+    async function handleLogin() {
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) {
+            alert(error.message);
+            return;
+        }
+
+        showApp();
+    }
+
+    async function handleSignup() {
+        const email = document.getElementById("signup-email").value;
+        const password = document.getElementById("signup-password").value;
+
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password
+        });
+
+        if (error) {
+            alert(error.message);
+            return;
+        }
+
+        alert("Signup successful. Please check your email if confirmation is required.");
+    }
+
+    async function handleLogout() {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            alert(error.message);
+            return;
+        }
+        showAuth();
+    }
+
+    // Check session on load
+    window.addEventListener("DOMContentLoaded", async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            showApp();
+        } else {
+            showAuth();
+        }
+    });
+</script>
+
+</body>
+</html>
