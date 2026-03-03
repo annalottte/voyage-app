@@ -2,8 +2,8 @@
 // Add this to replace the mock authentication and data storage
 
 // Initialize Supabase
-const SUPABASE_URL = 'https://luddtwoqtbalxqrzqpwl.supabase.co'; // Get from Supabase dashboard
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1ZGR0d29xdGJhbHhxcnpxcHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NjM5NjEsImV4cCI6MjA4ODAzOTk2MX0.POknAbIJXc2LhQuhlJYgb_jiP-SMhZOgoonLur2PLLo'; // Get from Supabase dashboard
+const SUPABASE_URL = 'https://yclhhvvzjojzosummjyk.supabase.co'; // Get from Supabase dashboard
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljbGhodnZ6am9qem9zdW1tanlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NTg3MTksImV4cCI6MjA4ODEzNDcxOX0.pYB_T63PsSdSf_WMagHHQnnKnNUhfL1ioiX7ing2x5w'; // Get from Supabase dashboard
 
 // Create the client and expose it globally
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
