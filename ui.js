@@ -107,6 +107,13 @@ function renderHomepage() {
   }
 }
 
+// Ensure only one page is visible on first load
+document.addEventListener('DOMContentLoaded', () => {
+  // If no page has .active yet, default to loginPage
+  const anyActive = document.querySelector('.page.active');
+  if (!anyActive) showPage('loginPage');
+});
+
 // ===========================
 // MEMORY JOURNAL (UI-only)
 // ===========================
@@ -282,7 +289,10 @@ function createDayCell(day, otherMonth, month) {
   cell.className = 'day-cell';
   if (otherMonth) cell.classList.add('other-month');
 
-  const dateKey = `${currentDate.getFullYear()}-${month + 1}-${day}`;
+  const cellDate = new Date(currentDate.getFullYear(), month, day);
+  const dateKey = (typeof formatDate === 'function')
+  ? formatDate(cellDate)
+  : `${cellDate.getFullYear()}-${String(cellDate.getMonth()+1).padStart(2,'0')}-${String(cellDate.getDate()).padStart(2,'0')}`;
   const dayData = (typeof currentTrip !== 'undefined') ? currentTrip?.days?.[dateKey] : null;
   const hasContent = !!(dayData && (dayData.notes || (dayData.photos?.length) || (dayData.links?.length)));
 
