@@ -2001,24 +2001,36 @@
     <script src="supabase-integration.js"></script>
     
     <!-- Auth-driven start -->
-    <script>
-    async function bootstrap() {
-      // Hide all pages initially
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    
-      const { data: { session } } = await supabase.auth.getSession();
-    
-      // Hide loading screen
-      document.getElementById("loadingScreen").style.display = "none";
-    
-      if (session) {
-          await loadUserData(session.user); // from supabase-integration.js
-      } else {
-          showPage("signupPage"); // default if logged out
+  <script>
+  async function bootstrap() {
+    console.log("Bootstrap starting…");
+  
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    console.log("Pages hidden");
+  
+    const { data: { session }, error } = await supabase.auth.getSession();
+    console.log("Session response:", session, error);
+  
+    document.getElementById("loadingScreen").style.display = "none";
+    console.log("Loading hidden");
+  
+    if (session) {
+      console.log("User IS logged in");
+      try {
+        await loadUserData(session.user);
+        console.log("loadUserData finished");
+      } catch (e) {
+        console.error("loadUserData failed:", e);
+        showPage("loginPage");
       }
+    } else {
+      console.log("User NOT logged in — showing signup");
+      showPage("signupPage");
     }
-    
-    bootstrap();
-    </script>
+  
+    console.log("Bootstrap COMPLETE");
+  }
+  bootstrap();
+  </script>
 </body>
 </html>
