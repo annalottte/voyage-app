@@ -537,6 +537,20 @@ async function deleteMemory(index) {
 // HELPER FUNCTIONS
 // ============================================================================
 
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+/**
+ * Returns YYYY-MM-DD in local time (stable for Supabase dates).
+ */
+function formatDate(dateLike) {
+  if (!dateLike) return '';
+  const d = (dateLike instanceof Date) ? dateLike : new Date(dateLike);
+  if (!isFinite(d)) return '';
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
 async function uploadImage(base64Data, bucket) {
     try {
         // Convert base64 to blob
