@@ -5,8 +5,11 @@
 const SUPABASE_URL = 'https://luddtwoqtbalxqrzqpwl.supabase.co'; // Get from Supabase dashboard
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1ZGR0d29xdGJhbHhxcnpxcHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NjM5NjEsImV4cCI6MjA4ODAzOTk2MX0.POknAbIJXc2LhQuhlJYgb_jiP-SMhZOgoonLur2PLLo'; // Get from Supabase dashboard
 
+// Create the client and expose it globally
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Optional local alias for convenience inside this file
+const supabaseClient = window.supabaseClient;
 
 // ============================================================================
 // AUTHENTICATION FUNCTIONS
@@ -21,7 +24,7 @@ async function signup(event) {
     const isPublic = document.getElementById('profilePublic').checked;
 
     try {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
