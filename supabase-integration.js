@@ -20,7 +20,7 @@ async function signup(event) {
     const isPublic = document.getElementById('profilePublic').checked;
 
     try {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
