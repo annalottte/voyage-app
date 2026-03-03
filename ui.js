@@ -14,6 +14,28 @@ let photoMap = null;
 let mapMarkers = [];
 let locationPhotoGroups = {};
 
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+/**
+ * Canonical YYYY-MM-DD key in local time.
+ * Matches what your Supabase tables expect and what you store in currentTrip.days.
+ */
+function getDateKey(dateLike) {
+  if (!dateLike) return '';
+  const d = (dateLike instanceof Date) ? dateLike : new Date(dateLike);
+  if (!isFinite(d)) return '';
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/**
+ * Keep formatDate as an alias (since supabase-integration.js calls formatDate()).
+ */
+function formatDate(dateLike) {
+  return getDateKey(dateLike);
+}
+
 // ===========================
 // NAVIGATION
 // ===========================
@@ -290,9 +312,7 @@ function createDayCell(day, otherMonth, month) {
   if (otherMonth) cell.classList.add('other-month');
 
   const cellDate = new Date(currentDate.getFullYear(), month, day);
-  const dateKey = (typeof formatDate === 'function')
-  ? formatDate(cellDate)
-  : `${cellDate.getFullYear()}-${String(cellDate.getMonth()+1).padStart(2,'0')}-${String(cellDate.getDate()).padStart(2,'0')}`;
+  const dateKey = getDateKey(cellDate);
   const dayData = (typeof currentTrip !== 'undefined') ? currentTrip?.days?.[dateKey] : null;
   const hasContent = !!(dayData && (dayData.notes || (dayData.photos?.length) || (dayData.links?.length)));
 
