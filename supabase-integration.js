@@ -198,7 +198,11 @@ async function loadUserData(user) {
 async function createTrip(event) {
     event.preventDefault();
 
-    const destination = document.getElementById('tripDestination').value;
+    const destination = document.getElementById('tripDestinationInput').value.trim();
+    if (!destination) {
+        alert('Please enter a destination.');
+        return;
+    }
     const startDate = document.getElementById('tripStartDate').value;
     const endDate = document.getElementById('tripEndDate').value;
     const isPrivate = document.getElementById('tripPrivate').checked;
@@ -284,7 +288,7 @@ async function openTrip(tripId) {
 
         document.getElementById('calendarTripTitle').textContent = currentTrip.destination;
         document.getElementById('sidebarTripTitle').textContent = currentTrip.destination;
-        document.getElementById('tripDestination').textContent = currentTrip.destination;
+        document.getElementById('tripDestinationText').textContent = currentTrip.destination;
         
         const formattedDates = `${formatDate(new Date(currentTrip.start_date))} - ${formatDate(new Date(currentTrip.end_date))}`;
         document.getElementById('tripDates').textContent = formattedDates;

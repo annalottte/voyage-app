@@ -1751,7 +1751,7 @@
                     <div class="nav-title" id="sidebarTripTitle">Trip Details</div>
                     <div id="tripInfo" style="padding: 12px; background: var(--bg-primary); border-radius: 8px; margin-top: 12px;">
                         <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Destination</div>
-                        <div id="tripDestination" style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">Loading...</div>
+                        <div id="tripDestinationText" style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">Loading...</div>
                         <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Dates</div>
                         <div id="tripDates" style="font-size: 14px; font-weight: 500;">Loading...</div>
                     </div>
@@ -1912,7 +1912,7 @@
             <form id="createTripForm" onsubmit="createTrip(event)">
                 <div class="form-group">
                     <label class="form-label">Destination</label>
-                    <input type="text" class="form-input" id="tripDestination" placeholder="e.g., Tokyo, Japan" required>
+                    <input type="text" class="form-input" id="tripDestinationInput" placeholder="e.g., Tokyo, Japan" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Start Date</label>
