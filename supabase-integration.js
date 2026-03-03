@@ -5,7 +5,7 @@
 const SUPABASE_URL = 'https://luddtwoqtbalxqrzqpwl.supabase.co'; // Get from Supabase dashboard
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1ZGR0d29xdGJhbHhxcnpxcHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NjM5NjEsImV4cCI6MjA4ODAzOTk2MX0.POknAbIJXc2LhQuhlJYgb_jiP-SMhZOgoonLur2PLLo'; // Get from Supabase dashboard
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================================================
 // AUTHENTICATION FUNCTIONS
@@ -20,7 +20,7 @@ async function signup(event) {
     const isPublic = document.getElementById('profilePublic').checked;
 
     try {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
@@ -46,7 +46,7 @@ async function login(event) {
     const password = document.getElementById('loginPassword').value;
 
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password
         });
@@ -54,7 +54,7 @@ async function login(event) {
         if (error) throw error;
 
         // Get user profile
-        const { data: profile } = await supabase
+        const { data: profile } = await supabaseClient
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
@@ -68,7 +68,7 @@ async function login(event) {
         };
 
         // Load trips
-        const { data: tripsData } = await supabase
+        const { data: tripsData } = await supabaseClient
             .from('trips')
             .select('*')
             .eq('user_id', data.user.id)
@@ -76,7 +76,7 @@ async function login(event) {
 
         trips = tripsData || [];
 
-        const { data: pastTripsData } = await supabase
+        const { data: pastTripsData } = await supabaseClient
             .from('trips')
             .select('*')
             .eq('user_id', data.user.id)
@@ -97,7 +97,7 @@ async function login(event) {
 async function logout() {
     if (confirm('Are you sure you want to log out?')) {
         try {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             currentUser = null;
             trips = [];
             pastTrips = [];
@@ -111,7 +111,7 @@ async function logout() {
 async function loadUserData(user) {
     try {
         // Get user profile
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await supabaseClient
             .from('profiles')
             .select('*')
             .eq('id', user.id)
@@ -127,7 +127,7 @@ async function loadUserData(user) {
         };
 
         // Load trips
-        const { data: tripsData, error: tripsError } = await supabase
+        const { data: tripsData, error: tripsError } = await supabaseClient
             .from('trips')
             .select('*')
             .eq('user_id', user.id)
@@ -139,7 +139,7 @@ async function loadUserData(user) {
         trips = tripsData || [];
 
         // Load past trips
-        const { data: pastTripsData, error: pastTripsError } = await supabase
+        const { data: pastTripsData, error: pastTripsError } = await supabaseClient
             .from('trips')
             .select('*')
             .eq('user_id', user.id)
@@ -152,7 +152,7 @@ async function loadUserData(user) {
 
         // Load memories for past trips
         for (let trip of pastTrips) {
-            const { data: memories, error: memoriesError } = await supabase
+            const { data: memories, error: memoriesError } = await supabaseClient
                 .from('memories')
                 .select(`
                     *,
@@ -211,7 +211,7 @@ async function createTrip(event) {
             headerImageUrl = await uploadImage(currentTripHeaderData, 'trip-images');
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('trips')
             .insert([{
                 user_id: currentUser.id,
@@ -240,7 +240,7 @@ async function createTrip(event) {
 
 async function openTrip(tripId) {
     try {
-        const { data: trip, error } = await supabase
+        const { data: trip, error } = await supabaseClient
             .from('trips')
             .select('*')
             .eq('id', tripId)
@@ -251,7 +251,7 @@ async function openTrip(tripId) {
         currentTrip = trip;
 
         // Load trip days
-        const { data: days, error: daysError } = await supabase
+        const { data: days, error: daysError } = await supabaseClient
             .from('trip_days')
             .select(`
                 *,
@@ -314,7 +314,7 @@ async function saveDayNotes() {
 
     try {
         // Check if day exists
-        const { data: existingDay, error: checkError } = await supabase
+        const { data: existingDay, error: checkError } = await supabaseClient
             .from('trip_days')
             .select('id')
             .eq('trip_id', currentTrip.id)
@@ -325,7 +325,7 @@ async function saveDayNotes() {
 
         if (existingDay) {
             // Update existing day
-            const { error: updateError } = await supabase
+            const { error: updateError } = await supabaseClient
                 .from('trip_days')
                 .update({ notes: notes })
                 .eq('id', existingDay.id);
@@ -333,7 +333,7 @@ async function saveDayNotes() {
             if (updateError) throw updateError;
         } else {
             // Create new day
-            const { error: insertError } = await supabase
+            const { error: insertError } = await supabaseClient
                 .from('trip_days')
                 .insert([{
                     trip_id: currentTrip.id,
@@ -368,7 +368,7 @@ async function addLink() {
         let dayId = await getOrCreateDay(currentTrip.id, dateKey);
 
         // Insert link
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('day_links')
             .insert([{
                 trip_day_id: dayId,
@@ -397,7 +397,7 @@ async function deleteLink(index) {
     const dateKey = getDateKey(selectedDate);
     
     try {
-        const { data: day } = await supabase
+        const { data: day } = await supabaseClient
             .from('trip_days')
             .select('id')
             .eq('trip_id', currentTrip.id)
@@ -405,14 +405,14 @@ async function deleteLink(index) {
             .single();
 
         if (day) {
-            const { data: links } = await supabase
+            const { data: links } = await supabaseClient
                 .from('day_links')
                 .select('*')
                 .eq('trip_day_id', day.id)
                 .order('created_at', { ascending: true });
 
             if (links && links[index]) {
-                await supabase
+                await supabaseClient
                     .from('day_links')
                     .delete()
                     .eq('id', links[index].id);
@@ -442,7 +442,7 @@ async function saveMemory(event) {
 
     try {
         // Create memory
-        const { data: memory, error: memoryError } = await supabase
+        const { data: memory, error: memoryError } = await supabaseClient
             .from('memories')
             .insert([{
                 trip_id: currentMemoryTrip.id,
@@ -459,7 +459,7 @@ async function saveMemory(event) {
         const photoPromises = currentMemoryPhotos.map(async (photo) => {
             const photoUrl = await uploadImage(photo.url, 'memory-photos');
             
-            return supabase
+            return supabaseClient
                 .from('memory_photos')
                 .insert([{
                     memory_id: memory.id,
@@ -500,14 +500,14 @@ async function deleteMemory(index) {
         const memory = currentMemoryTrip.memories[index];
         
         // Get memory from database
-        const { data: dbMemories } = await supabase
+        const { data: dbMemories } = await supabaseClient
             .from('memories')
             .select('id')
             .eq('trip_id', currentMemoryTrip.id)
             .order('date', { ascending: true });
 
         if (dbMemories && dbMemories[index]) {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('memories')
                 .delete()
                 .eq('id', dbMemories[index].id);
@@ -539,7 +539,7 @@ async function uploadImage(base64Data, bucket) {
         const fileName = `${currentUser.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
         
         // Upload to Supabase Storage
-        const { data, error } = await supabase.storage
+        const { data, error } = await supabaseClient.storage
             .from(bucket)
             .upload(fileName, blob, {
                 contentType: 'image/jpeg',
@@ -549,7 +549,7 @@ async function uploadImage(base64Data, bucket) {
         if (error) throw error;
 
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = supabaseClient.storage
             .from(bucket)
             .getPublicUrl(fileName);
 
@@ -562,7 +562,7 @@ async function uploadImage(base64Data, bucket) {
 }
 
 async function getOrCreateDay(tripId, date) {
-    const { data: existingDay, error: checkError } = await supabase
+    const { data: existingDay, error: checkError } = await supabaseClient
         .from('trip_days')
         .select('id')
         .eq('trip_id', tripId)
@@ -575,7 +575,7 @@ async function getOrCreateDay(tripId, date) {
         return existingDay.id;
     }
 
-    const { data: newDay, error: insertError } = await supabase
+    const { data: newDay, error: insertError } = await supabaseClient
         .from('trip_days')
         .insert([{
             trip_id: tripId,

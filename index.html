@@ -2008,7 +2008,7 @@
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     console.log("Pages hidden");
   
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
     console.log("Session response:", session, error);
   
     document.getElementById("loadingScreen").style.display = "none";
