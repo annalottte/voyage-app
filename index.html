@@ -617,12 +617,16 @@
         /* Auth Pages */
         .auth-page {
             min-height: 100vh;
-            display: flex;
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, var(--accent-warm-light) 0%, var(--accent-sky-light) 100%);
             padding: 24px;
         }
+
+      /* When an auth page is the active page, then use flex */
+      .page.active.auth-page {
+        display: flex;
+      }
 
         .auth-container {
             background: var(--bg-secondary);
