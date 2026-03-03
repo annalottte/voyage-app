@@ -1650,6 +1650,13 @@
     </style>
 </head>
 <body>
+    
+    <div id="loadingScreen" style="
+        display:flex;align-items:center;justify-content:center;
+        height:100vh;font-size:20px;color:#6b6460;">
+        Loading...
+    </div>
+
     <!-- Login Page -->
     <div id="loginPage" class="page auth-page">
         <div class="auth-container">
@@ -1667,7 +1674,7 @@
     </div>
 
     <!-- Signup Page -->
-    <div id="signupPage" class="page auth-page active">
+    <div id="signupPage" class="page auth-page">
         <div class="auth-container">
             <div class="auth-logo">Voyage</div>
             <p class="auth-subtitle">Start your journey</p>
@@ -1988,13 +1995,23 @@
     
     <!-- Auth-driven start -->
     <script>
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          loadUserData(session.user); // defined in supabase-integration.js
-        } else {
-          showPage("signupPage");     // default screen
-        }
-      });
+    async function bootstrap() {
+      // Hide all pages initially
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    
+      const { data: { session } } = await supabase.auth.getSession();
+    
+      // Hide loading screen
+      document.getElementById("loadingScreen").style.display = "none";
+    
+      if (session) {
+          await loadUserData(session.user); // from supabase-integration.js
+      } else {
+          showPage("signupPage"); // default if logged out
+      }
+    }
+    
+    bootstrap();
     </script>
 </body>
 </html>
