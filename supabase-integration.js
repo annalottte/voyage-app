@@ -589,25 +589,3 @@ async function getOrCreateDay(tripId, date) {
 
     return newDay.id;
 }
-
-// ============================================================================
-// AUTH STATE LISTENER
-// ============================================================================
-
-supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN' && session) {
-        loadUserData(session.user);
-    } else if (event === 'SIGNED_OUT') {
-        currentUser = null;
-        trips = [];
-        pastTrips = [];
-        showPage('loginPage');
-    }
-});
-
-// Check for existing session on page load
-supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session) {
-        loadUserData(session.user);
-    }
-});
