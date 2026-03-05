@@ -1633,6 +1633,207 @@
             }
         }
 
+        /* ---- Friends & Collaboration ---- */
+        .friends-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(26, 24, 22, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: flex-start;
+            justify-content: center;
+            z-index: 4000;
+            padding: 40px 24px;
+            overflow-y: auto;
+        }
+        .friends-overlay.active-overlay { display: flex; }
+
+        .friends-panel {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+            overflow: hidden;
+        }
+
+        .friends-header {
+            padding: 28px 32px 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .friends-title {
+            font-family: 'Fraunces', serif;
+            font-size: 26px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .friends-body { padding: 24px 32px 32px; }
+
+        .friends-section { margin-bottom: 28px; }
+
+        .friends-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-tertiary);
+            margin-bottom: 14px;
+        }
+
+        .friend-search-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .friend-search-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .friend-search-input:focus {
+            outline: none;
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 0 3px var(--accent-warm-light);
+        }
+
+        .friend-search-btn {
+            padding: 12px 20px;
+            background: var(--text-primary);
+            color: var(--bg-secondary);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .friend-search-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+
+        .friend-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+        .friend-card:hover { border-color: var(--accent-warm); }
+
+        .friend-avatar {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            background: var(--accent-warm);
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px; font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .friend-info { flex: 1; min-width: 0; }
+        .friend-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .friend-email { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+        .friend-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+        .friend-btn {
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        .friend-btn-add    { background: var(--accent-warm); color: white; }
+        .friend-btn-accept { background: var(--accent-sky); color: white; }
+        .friend-btn-decline, .friend-btn-remove {
+            background: transparent;
+            border: 1px solid var(--border-medium);
+            color: var(--text-secondary);
+        }
+        .friend-btn-decline:hover, .friend-btn-remove:hover { background: #fde8e0; border-color: #e57b5e; color: #c0392b; }
+
+        .friends-empty {
+            text-align: center;
+            color: var(--text-tertiary);
+            font-size: 14px;
+            padding: 16px 0;
+        }
+
+        /* Collaborators modal (reuses .modal-overlay) */
+        .collab-modal .modal { max-width: 560px; }
+
+        /* "Share" button on trip cards */
+        .trip-share-btn {
+            margin-top: 10px;
+            width: 100%;
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px dashed var(--border-medium);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .trip-share-btn:hover { border-color: var(--accent-sky); color: var(--accent-sky); background: var(--accent-sky-light); }
+
+        /* Shared trip badge */
+        .collab-badge {
+            display: inline-block;
+            background: var(--accent-sky-light);
+            color: var(--accent-sky);
+            border: 1px solid var(--accent-sky);
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        /* Friends button in top-right */
+        .friends-nav-btn {
+            position: fixed;
+            top: 24px;
+            right: 160px;
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+        .friends-nav-btn:hover { background: var(--bg-hover); box-shadow: var(--shadow-sm); }
+
+        /* Pending request dot */
+        .request-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            background: var(--accent-warm);
+            border-radius: 50%;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
         @media (max-width: 968px) {
             .app-container {
                 grid-template-columns: 1fr;
@@ -1711,8 +1912,60 @@
         </div>
     </div>
 
+    <!-- Friends Page Overlay -->
+    <div id="friendsPage" class="friends-overlay">
+        <div class="friends-panel">
+            <div class="friends-header">
+                <div class="friends-title">👥 Friends</div>
+                <button class="close-detail-btn" onclick="closeFriendsPage()">×</button>
+            </div>
+            <div class="friends-body">
+                <div class="friends-section">
+                    <div class="friends-section-title">Find someone by email</div>
+                    <div class="friend-search-row">
+                        <input type="email" id="friendSearchInput" class="friend-search-input" placeholder="Enter their email address…" oninput="handleFriendSearch()">
+                        <button class="friend-search-btn" onclick="handleFriendSearch()">Search</button>
+                    </div>
+                    <div id="friendSearchResults"></div>
+                </div>
+                <div class="friends-section">
+                    <div class="friends-section-title">Pending Requests</div>
+                    <div id="friendRequestsList"><p class="friends-empty">No pending requests</p></div>
+                </div>
+                <div class="friends-section">
+                    <div class="friends-section-title">My Friends</div>
+                    <div id="friendsList"><p class="friends-empty">No friends yet — search for someone above!</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collaborators Modal -->
+    <div class="modal-overlay collab-modal" id="collaboratorsModal">
+        <div class="modal">
+            <h2 class="modal-title">🌍 Trip Collaborators</h2>
+            <p style="font-size:14px;color:var(--text-secondary);margin-bottom:20px;">Invite friends to co-plan this trip. They can add notes, photos, and links together with you.</p>
+            <div style="margin-bottom:24px;">
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-tertiary);margin-bottom:10px;">Current Collaborators</div>
+                <div id="collaboratorsList"><p class="friends-empty">No collaborators yet.</p></div>
+            </div>
+            <div>
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-tertiary);margin-bottom:10px;">Invite Someone</div>
+                <div class="friend-search-row">
+                    <input type="email" id="collabSearchInput" class="friend-search-input" placeholder="Search by email…" oninput="handleCollabSearch()">
+                    <button class="friend-search-btn" onclick="handleCollabSearch()">Search</button>
+                </div>
+                <div id="collabSearchResults"></div>
+            </div>
+            <div class="modal-actions" style="margin-top:24px;">
+                <button class="modal-btn modal-btn-secondary" onclick="closeCollaboratorsModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Homepage -->
     <div id="homepage" class="page">
+        <button class="friends-nav-btn" id="friendsNavBtn" onclick="openFriendsPage()">👥 Friends</button>
         <button class="settings-btn" onclick="logout()">⚙️ Settings & Logout</button>
         <div class="homepage">
             <div class="homepage-header">
