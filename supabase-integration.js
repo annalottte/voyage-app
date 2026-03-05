@@ -350,6 +350,14 @@ async function loadUserData(user) {
                 }));
             }
         }
+        
+        // Load friends and shared trips
+        await loadFriends();
+        const shared = await loadSharedTrips();
+        if (shared.length) {
+            const myIds = new Set(trips.map(t => t.id));
+            shared.forEach(t => { if (!myIds.has(t.id)) trips.push(t); });
+        }
 
         document.getElementById('welcomeMessage').textContent = `Welcome back, ${currentUser.name}!`;
         showPage('homepage');
@@ -999,20 +1007,5 @@ async function loadSharedTrips() {
     } catch (error) {
         console.error('Error loading shared trips:', error);
         return [];
-    }
-}
-
-// Extend loadUserData to also load friends + shared trips
-const _originalLoadUserData = loadUserData;
-async function loadUserData(user) {
-    await _originalLoadUserData(user);
-    await loadFriends();
-    
-    // Load shared trips and merge into trips list
-    const shared = await loadSharedTrips();
-    if (shared.length) {
-        const myIds = new Set(trips.map(t => t.id));
-        shared.forEach(t => { if (!myIds.has(t.id)) trips.push(t); });
-        renderHomepage();
     }
 }
