@@ -2122,8 +2122,9 @@
             <div class="trips-section">
                 <div class="section-header">
                     <h2 class="section-title">Memory Lane</h2>
-                    <p style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Relive your adventures</p>
+                    <button class="create-trip-btn" onclick="openAddMemoryModal()" style="background: var(--accent-warm);">+ Add Memory</button>
                 </div>
+                <p style="font-size: 14px; color: var(--text-secondary); margin-top: -16px; margin-bottom: 20px;">Relive your adventures</p>
                 <div class="trips-grid" id="pastTripsGrid">
                     <!-- Past trip cards will be generated here -->
                 </div>
@@ -2400,6 +2401,13 @@
         <div class="modal">
             <h2 class="modal-title">Add Memory</h2>
             <div id="addMemoryTripLabel" style="font-size: 13px; color: var(--accent-warm); font-weight: 600; margin-bottom: 16px; margin-top: -12px;"></div>
+            <!-- Trip picker — shown when adding from homepage with no trip pre-selected -->
+            <div id="addMemoryTripPickerGroup" class="form-group" style="display:none;">
+                <label class="form-label">Which trip is this memory for?</label>
+                <select class="form-input" id="addMemoryTripPicker">
+                    <option value="">Select a trip…</option>
+                </select>
+            </div>
             <form id="addMemoryForm" onsubmit="saveMemory(event)">
                 <div class="form-group">
                     <label class="form-label">Date</label>
