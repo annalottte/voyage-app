@@ -1,6 +1,12 @@
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        // Temporary debug — remove after fixing
+        const key = process.env.ANTHROPIC_API_KEY;
+        return res.status(405).json({ 
+            error: 'Method not allowed',
+            debug_hasKey: !!key,
+            debug_keyStart: key ? key.substring(0, 10) : 'NOT SET'
+        });
     }
 
     res.setHeader('Access-Control-Allow-Origin', '*');
