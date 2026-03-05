@@ -93,6 +93,7 @@ function renderHomepage() {
           </div>
           <button class="trip-share-btn" onclick="event.stopPropagation(); openCollaboratorsModal('${trip.id}')">👥 Share & Collaborate</button>
           ${!trip._sharedRole ? `<button class="trip-delete-btn" onclick="event.stopPropagation(); deleteTrip('${trip.id}')">🗑️ Delete Trip</button>` : ''}
+          ${!trip._sharedRole ? `<button class="trip-archive-btn" onclick="event.stopPropagation(); archiveTrip('${trip.id}')">📦 Archive to Memory Lane</button>` : ''}
         </div>
       `;
       grid && grid.appendChild(card);
@@ -126,6 +127,7 @@ function renderHomepage() {
           <div class="trip-card-stats">
             <div class="trip-card-stat">✨ ${memoriesCount} memories</div>
           </div>
+          <button class="trip-share-btn" style="margin-top:10px;" onclick="event.stopPropagation(); openAddMemoryModal('${trip.id}')">+ Add Memory</button>
         </div>
       `;
       pastGrid && pastGrid.appendChild(card);
@@ -228,15 +230,45 @@ function renderMemories() {
   });
 }
 
-function openAddMemoryModal() {
-  if (!window.currentMemoryTrip) return;
+function openAddMemoryModal(tripId) {
+  // If called with a specific tripId (from trip card), set currentMemoryTrip first
+  if (tripId) {
+    const trip = (pastTrips || []).find(t => t.id === tripId);
+    if (trip) window.currentMemoryTrip = trip;
+  }
+
+  if (!window.currentMemoryTrip) {
+    // No past trips at all — prompt user to archive a trip first
+    if (!pastTrips?.length) {
+      alert('Archive a completed trip first to start adding memories!');
+      return;
+    }
+    // Prompt them to pick which past trip
+    const tripNames = pastTrips.map((t, i) => `${i + 1}. ${t.destination}`).join('\n');
+    const choice = prompt(`Which trip is this memory for?\n\n${tripNames}\n\nEnter the number:`);
+    const idx = parseInt(choice) - 1;
+    if (isNaN(idx) || !pastTrips[idx]) return;
+    window.currentMemoryTrip = pastTrips[idx];
+  }
+
   const modal = document.getElementById('addMemoryModal');
   if (!modal) return;
+
+  // Show which trip this memory is for
+  const tripLabel = document.getElementById('addMemoryTripLabel');
+  if (tripLabel) tripLabel.textContent = `Adding to: ${currentMemoryTrip.destination}`;
 
   modal.classList.add('active');
   document.getElementById('addMemoryForm')?.reset();
   const preview = document.getElementById('memoryPhotosPreview');
   if (preview) preview.innerHTML = '';
+
+  currentMemoryPhotos = [];
+
+  const start = currentMemoryTrip.start_date || currentMemoryTrip.startDate;
+  const dateInput = document.getElementById('memoryDate');
+  if (dateInput && start) dateInput.value = start;
+}
 
   currentMemoryPhotos = []; // UI preview list
 
