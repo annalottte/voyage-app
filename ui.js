@@ -47,8 +47,10 @@ function showPage(pageId) {
 }
 
 function goToHomepage() {
+  scratchMapReady = false;
+  const inner = document.getElementById('scratchMapInner');
+  if (inner) inner.innerHTML = '';
   showPage('homepage');
-  // do not touch data here; Supabase owns currentTrip/trips/pastTrips
 }
 
 // ===========================
@@ -264,13 +266,6 @@ function openAddMemoryModal(tripId) {
   if (preview) preview.innerHTML = '';
 
   currentMemoryPhotos = [];
-
-  const start = currentMemoryTrip.start_date || currentMemoryTrip.startDate;
-  const dateInput = document.getElementById('memoryDate');
-  if (dateInput && start) dateInput.value = start;
-}
-
-  currentMemoryPhotos = []; // UI preview list
 
   const start = currentMemoryTrip.start_date || currentMemoryTrip.startDate;
   const dateInput = document.getElementById('memoryDate');
@@ -993,29 +988,17 @@ async function initScratchMap() {
   const container = document.getElementById('scratchMapInner');
   if (!container || scratchMapReady) return;
 
-  // Load visited countries from localStorage as a quick client-side store
+  // Only restore manually clicked countries from localStorage
   const saved = localStorage.getItem(`voyage_scratch_${currentUser?.id}`);
-  if (saved) visitedCountries = new Set(JSON.parse(saved));
-
-  // Extract country names from trips
-  const allTrips = [...(trips || []), ...(pastTrips || [])];
-  allTrips.forEach(t => {
-    if (t.destination) {
-      // Try to match country from destination string (last word or whole)
-      const parts = t.destination.split(',').map(s => s.trim());
-      const country = parts[parts.length - 1];
-      if (country) visitedCountries.add(country.toLowerCase());
-    }
-  });
+  if (saved) {
+    try { visitedCountries = new Set(JSON.parse(saved)); } catch(e) {}
+  }
 
   try {
     const res = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
     const world = await res.json();
     const countries = topojson.feature(world, world.objects.countries);
 
-    // Also fetch country names
-    const namesRes = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
-    
     const width = container.offsetWidth || 900;
     const height = Math.round(width * 0.5);
 
