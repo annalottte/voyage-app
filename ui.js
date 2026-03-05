@@ -92,6 +92,7 @@ function renderHomepage() {
             <div class="trip-card-stat">✓ ${daysWithPlans} planned</div>
           </div>
           <button class="trip-share-btn" onclick="event.stopPropagation(); openCollaboratorsModal('${trip.id}')">👥 Share & Collaborate</button>
+          ${!trip._sharedRole ? `<button class="trip-delete-btn" onclick="event.stopPropagation(); deleteTrip('${trip.id}')">🗑️ Delete Trip</button>` : ''}
         </div>
       `;
       grid && grid.appendChild(card);
@@ -130,6 +131,11 @@ function renderHomepage() {
       pastGrid && pastGrid.appendChild(card);
     });
   }
+
+  // Init scratch map after render (slight delay so DOM is ready)
+  setTimeout(() => {
+    if (typeof initScratchMap === 'function') initScratchMap();
+  }, 100);
 }
 
 // Ensure only one page is visible on first load
@@ -393,6 +399,12 @@ function openDayDetail() {
   renderLinks(dayData.links || []);
 
   document.getElementById('dayDetailOverlay')?.classList.add('active');
+
+  // Fetch weather for this day
+  if (currentTrip?.destination) {
+    const dateStr = getDateKey(selectedDate);
+    fetchWeatherForDay(currentTrip.destination, dateStr);
+  }
 }
 
 function closeDayDetail() {
@@ -820,4 +832,335 @@ async function handleCollabSearch() {
             </div>
         </div>
     `).join('');
+}
+
+
+
+// ===========================
+// WEATHER WIDGET
+// ===========================
+
+const WMO_CODES = {
+  0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',
+  45:'Foggy',48:'Icy fog',
+  51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',
+  61:'Light rain',63:'Rain',65:'Heavy rain',
+  71:'Light snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Rain showers',82:'Violent showers',
+  95:'Thunderstorm',96:'Thunderstorm w/ hail',99:'Thunderstorm w/ heavy hail'
+};
+
+const WMO_ICONS = {
+  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+  45:'🌫️',48:'🌫️',
+  51:'🌦️',53:'🌧️',55:'🌧️',
+  61:'🌧️',63:'🌧️',65:'🌧️',
+  71:'🌨️',73:'❄️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',
+  95:'⛈️',96:'⛈️',99:'⛈️'
+};
+
+async function fetchWeatherForDay(destination, dateStr) {
+  const widget = document.getElementById('weatherWidget');
+  if (!widget) return;
+  widget.innerHTML = '<div class="weather-loading">Fetching forecast…</div>';
+
+  try {
+    // Geocode destination
+    const geoRes = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&language=en&format=json`
+    );
+    const geoData = await geoRes.json();
+    if (!geoData.results?.length) throw new Error('Location not found');
+
+    const { latitude, longitude, name, country } = geoData.results[0];
+
+    // Check if date is within forecast range (16 days from today)
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const targetDate = new Date(dateStr + 'T00:00:00');
+    const diffDays = Math.round((targetDate - today) / (1000*60*60*24));
+
+    if (diffDays < -1 || diffDays > 15) {
+      widget.innerHTML = `<div class="weather-unavailable">⚠️ Weather forecast only available within 16 days of today. Check back closer to your trip!</div>`;
+      return;
+    }
+
+    // Fetch forecast
+    const weatherRes = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&hourly=temperature_2m,weathercode&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`
+    );
+    const weatherData = await weatherRes.json();
+
+    const daily = weatherData.daily;
+    if (!daily?.weathercode?.length) throw new Error('No forecast data');
+
+    const code = daily.weathercode[0];
+    const tmax = Math.round(daily.temperature_2m_max[0]);
+    const tmin = Math.round(daily.temperature_2m_min[0]);
+    const precip = daily.precipitation_sum[0];
+    const wind = Math.round(daily.windspeed_10m_max[0]);
+    const icon = WMO_ICONS[code] || '🌡️';
+    const desc = WMO_CODES[code] || 'Unknown';
+
+    // Hourly (show every 3 hours, daytime only: 7am-10pm)
+    const hours = weatherData.hourly;
+    let hourlyHtml = '';
+    if (hours?.time) {
+      const dayHours = hours.time
+        .map((t, i) => ({ time: t, temp: Math.round(hours.temperature_2m[i]), code: hours.weathercode[i] }))
+        .filter(h => {
+          const hr = new Date(h.time).getHours();
+          return hr >= 7 && hr <= 22 && hr % 3 === 0;
+        });
+
+      hourlyHtml = `<div class="weather-hourly">` +
+        dayHours.map(h => {
+          const hr = new Date(h.time).getHours();
+          const label = hr === 12 ? '12pm' : hr > 12 ? `${hr-12}pm` : `${hr}am`;
+          return `<div class="weather-hour">
+            <div class="wh-time">${label}</div>
+            <div class="wh-icon">${WMO_ICONS[h.code] || '🌡️'}</div>
+            <div class="wh-temp">${h.temp}°</div>
+          </div>`;
+        }).join('') +
+      `</div>`;
+    }
+
+    widget.innerHTML = `
+      <div class="weather-main">
+        <div class="weather-icon-temp">
+          <div class="weather-icon">${icon}</div>
+          <div class="weather-temp">${tmax}°<span>C</span></div>
+        </div>
+        <div class="weather-details">
+          <div class="weather-desc">${desc}</div>
+          <div class="weather-meta">
+            <span>↓ ${tmin}°C</span>
+            <span>💧 ${precip}mm</span>
+            <span>💨 ${wind} km/h</span>
+            <span style="color:var(--text-tertiary)">${name}, ${country}</span>
+          </div>
+        </div>
+        ${hourlyHtml}
+      </div>
+    `;
+
+  } catch (err) {
+    console.warn('Weather fetch failed:', err);
+    widget.innerHTML = `<div class="weather-unavailable">🌡️ Could not load weather for this destination.</div>`;
+  }
+}
+
+// ===========================
+// SCRATCH MAP
+// ===========================
+
+let visitedCountries = new Set();
+let scratchMapReady = false;
+
+async function initScratchMap() {
+  const container = document.getElementById('scratchMapInner');
+  if (!container || scratchMapReady) return;
+
+  // Load visited countries from localStorage as a quick client-side store
+  const saved = localStorage.getItem(`voyage_scratch_${currentUser?.id}`);
+  if (saved) visitedCountries = new Set(JSON.parse(saved));
+
+  // Extract country names from trips
+  const allTrips = [...(trips || []), ...(pastTrips || [])];
+  allTrips.forEach(t => {
+    if (t.destination) {
+      // Try to match country from destination string (last word or whole)
+      const parts = t.destination.split(',').map(s => s.trim());
+      const country = parts[parts.length - 1];
+      if (country) visitedCountries.add(country.toLowerCase());
+    }
+  });
+
+  try {
+    const res = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+    const world = await res.json();
+    const countries = topojson.feature(world, world.objects.countries);
+
+    // Also fetch country names
+    const namesRes = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+    
+    const width = container.offsetWidth || 900;
+    const height = Math.round(width * 0.5);
+
+    const projection = d3.geoNaturalEarth1()
+      .scale(width / 6.5)
+      .translate([width / 2, height / 2]);
+
+    const path = d3.geoPath().projection(projection);
+
+    const svg = d3.select(container).append('svg')
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet');
+
+    // Ocean background
+    svg.append('rect')
+      .attr('width', width).attr('height', height)
+      .attr('fill', '#c8dff0').attr('rx', 8);
+
+    // Country name lookup
+    const countryNames = {
+      '004':'Afghanistan','008':'Albania','012':'Algeria','024':'Angola','032':'Argentina',
+      '036':'Australia','040':'Austria','050':'Bangladesh','056':'Belgium','068':'Bolivia',
+      '076':'Brazil','100':'Bulgaria','116':'Cambodia','120':'Cameroon','124':'Canada',
+      '152':'Chile','156':'China','170':'Colombia','180':'DR Congo','188':'Costa Rica',
+      '191':'Croatia','192':'Cuba','196':'Cyprus','203':'Czech Republic','208':'Denmark',
+      '218':'Ecuador','818':'Egypt','231':'Ethiopia','246':'Finland','250':'France',
+      '276':'Germany','288':'Ghana','300':'Greece','320':'Guatemala','332':'Haiti',
+      '340':'Honduras','356':'India','360':'Indonesia','364':'Iran','368':'Iraq',
+      '372':'Ireland','376':'Israel','380':'Italy','388':'Jamaica','392':'Japan',
+      '400':'Jordan','404':'Kenya','410':'South Korea','414':'Kuwait','418':'Laos',
+      '422':'Lebanon','434':'Libya','442':'Luxembourg','484':'Mexico','504':'Morocco',
+      '508':'Mozambique','516':'Namibia','524':'Nepal','528':'Netherlands','540':'New Caledonia',
+      '554':'New Zealand','566':'Nigeria','578':'Norway','586':'Pakistan','591':'Panama',
+      '604':'Peru','608':'Philippines','616':'Poland','620':'Portugal','630':'Puerto Rico',
+      '642':'Romania','643':'Russia','646':'Rwanda','682':'Saudi Arabia','686':'Senegal',
+      '694':'Sierra Leone','703':'Slovakia','706':'Somalia','710':'South Africa',
+      '724':'Spain','144':'Sri Lanka','729':'Sudan','752':'Sweden','756':'Switzerland',
+      '760':'Syria','158':'Taiwan','764':'Thailand','792':'Turkey','800':'Uganda',
+      '804':'Ukraine','784':'United Arab Emirates','826':'United Kingdom','840':'United States',
+      '858':'Uruguay','862':'Venezuela','704':'Vietnam','887':'Yemen','894':'Zambia','716':'Zimbabwe'
+    };
+
+    svg.selectAll('.scratch-country')
+      .data(countries.features)
+      .enter().append('path')
+      .attr('class', d => {
+        const name = (countryNames[d.id] || '').toLowerCase();
+        const isVisited = visitedCountries.has(name) ||
+          [...visitedCountries].some(v => name.includes(v) || v.includes(name));
+        return 'scratch-country' + (isVisited ? ' visited' : '');
+      })
+      .attr('d', path)
+      .attr('data-name', d => countryNames[d.id] || d.id)
+      .on('click', function(event, d) {
+        const name = (countryNames[d.id] || '').toLowerCase();
+        if (!name) return;
+        const el = d3.select(this);
+        if (el.classed('visited')) {
+          el.classed('visited', false);
+          visitedCountries.delete(name);
+        } else {
+          el.classed('visited', true);
+          visitedCountries.add(name);
+        }
+        saveScratchMap();
+        updateScratchMapStats();
+      })
+      .append('title')
+      .text(d => countryNames[d.id] || '');
+
+    scratchMapReady = true;
+    updateScratchMapStats();
+
+  } catch (err) {
+    console.error('Scratch map failed:', err);
+    container.innerHTML = '<p style="color:var(--text-tertiary);text-align:center;padding:32px">Could not load map. Check your connection.</p>';
+  }
+}
+
+function saveScratchMap() {
+  if (currentUser?.id) {
+    localStorage.setItem(`voyage_scratch_${currentUser.id}`, JSON.stringify([...visitedCountries]));
+  }
+}
+
+function updateScratchMapStats() {
+  const el = document.getElementById('scratchMapStats');
+  if (el) {
+    const count = visitedCountries.size;
+    el.textContent = count === 0
+      ? 'Click countries to mark them as visited!'
+      : `🌍 ${count} countr${count === 1 ? 'y' : 'ies'} visited — keep exploring!`;
+  }
+}
+
+// ===========================
+// AI JOURNEY SUMMARY
+// ===========================
+
+async function openAISummaryModal() {
+  const modal = document.getElementById('aiSummaryModal');
+  if (!modal) return;
+  modal.classList.add('active');
+  await generateAISummary();
+}
+
+async function generateAISummary() {
+  const content = document.getElementById('aiSummaryContent');
+  const regenerateBtn = document.getElementById('aiRegenerateBtn');
+  if (!content || !window.currentMemoryTrip) return;
+
+  regenerateBtn.disabled = true;
+
+  // Build context from memories
+  const trip = window.currentMemoryTrip;
+  const mems = trip.memories || [];
+
+  if (!mems.length) {
+    content.innerHTML = `<div class="ai-summary-text">No memories yet — add some memories to your trip first, then come back for your AI summary! ✨</div>`;
+    regenerateBtn.disabled = false;
+    return;
+  }
+
+  const memorySummary = mems.map((m, i) => {
+    const d = new Date(m.date);
+    const dateStr = isFinite(d) ? d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) : m.date;
+    return `Day ${i+1} (${dateStr})${m.title ? ` - ${m.title}` : ''}: ${m.notes || 'No notes'}`;
+  }).join('\n');
+
+  const prompt = `You are writing a beautiful, warm, and evocative travel journal summary for someone's trip to ${trip.destination || 'an amazing destination'}.
+
+Here are their memories from the trip:
+${memorySummary}
+
+Write a short, lyrical "Day at a Glance" style summary (3-4 paragraphs) that:
+- Captures the emotional highlights and key moments
+- Uses vivid, sensory language
+- Feels personal and nostalgic, like a letter to themselves
+- Ends with a warm reflection on the journey as a whole
+
+Write in second person ("you"). Keep it genuine and heartfelt, not generic.`;
+
+  content.innerHTML = `<div class="ai-summary-text ai-typing"> </div>`;
+  const textEl = content.querySelector('.ai-summary-text');
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || 'Could not generate summary. Please try again.';
+
+    // Typewriter effect
+    textEl.classList.remove('ai-typing');
+    textEl.textContent = '';
+    textEl.classList.add('ai-typing');
+    let i = 0;
+    const interval = setInterval(() => {
+      textEl.textContent += text[i];
+      i++;
+      if (i >= text.length) {
+        clearInterval(interval);
+        textEl.classList.remove('ai-typing');
+      }
+    }, 12);
+
+  } catch (err) {
+    console.error('AI summary error:', err);
+    content.innerHTML = `<div class="ai-summary-text">Sorry, could not generate summary right now. Please try again.</div>`;
+  }
+
+  regenerateBtn.disabled = false;
 }
