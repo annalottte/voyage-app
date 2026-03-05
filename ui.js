@@ -89,6 +89,7 @@ function renderHomepage() {
             <div class="trip-card-stat">📅 ${days} days</div>
             <div class="trip-card-stat">✓ ${daysWithPlans} planned</div>
           </div>
+          <button class="trip-share-btn" onclick="event.stopPropagation(); openCollaboratorsModal('${trip.id}')">👥 Share & Collaborate</button>
         </div>
       `;
       grid && grid.appendChild(card);
@@ -640,3 +641,207 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 document.getElementById('dayDetailOverlay')?.addEventListener('click', function (e) {
   if (e.target === this) closeDayDetail();
 });
+
+// ===========================
+// FRIENDS PAGE (UI)
+// ===========================
+
+function openFriendsPage() {
+    renderFriendsPage();
+    document.getElementById('friendsPage')?.classList.add('active-overlay');
+}
+
+function closeFriendsPage() {
+    document.getElementById('friendsPage')?.classList.remove('active-overlay');
+}
+
+function renderFriendsPage() {
+    // Pending requests
+    const reqContainer = document.getElementById('friendRequestsList');
+    if (reqContainer) {
+        if (!friendRequests?.length) {
+            reqContainer.innerHTML = '<p class="friends-empty">No pending requests</p>';
+        } else {
+            reqContainer.innerHTML = friendRequests.map(r => `
+                <div class="friend-card">
+                    <div class="friend-avatar">${(r.name || '?')[0].toUpperCase()}</div>
+                    <div class="friend-info">
+                        <div class="friend-name">${r.name || 'Unknown'}</div>
+                        <div class="friend-email">${r.email || ''}</div>
+                    </div>
+                    <div class="friend-actions">
+                        <button class="friend-btn friend-btn-accept" onclick="respondToFriendRequest('${r.friendshipId}', true)">Accept</button>
+                        <button class="friend-btn friend-btn-decline" onclick="respondToFriendRequest('${r.friendshipId}', false)">Decline</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Friends list
+    const friendsContainer = document.getElementById('friendsList');
+    if (friendsContainer) {
+        if (!friends?.length) {
+            friendsContainer.innerHTML = '<p class="friends-empty">No friends yet — search for someone above!</p>';
+        } else {
+            friendsContainer.innerHTML = friends.map(f => `
+                <div class="friend-card">
+                    <div class="friend-avatar">${(f.name || '?')[0].toUpperCase()}</div>
+                    <div class="friend-info">
+                        <div class="friend-name">${f.name || 'Unknown'}</div>
+                        <div class="friend-email">${f.email || ''}</div>
+                    </div>
+                    <div class="friend-actions">
+                        <button class="friend-btn friend-btn-remove" onclick="removeFriend('${f.friendshipId}')">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+async function handleFriendSearch() {
+    const input = document.getElementById('friendSearchInput');
+    const results = document.getElementById('friendSearchResults');
+    if (!input || !results) return;
+
+    const email = input.value.trim();
+    if (!email) { results.innerHTML = ''; return; }
+
+    results.innerHTML = '<p style="color: var(--text-tertiary); font-size: 13px;">Searching…</p>';
+    const users = await searchUserByEmail(email);
+
+    if (!users.length) {
+        results.innerHTML = '<p class="friends-empty">No users found with that email.</p>';
+        return;
+    }
+
+    const friendIds = new Set([
+        ...(friends || []).map(f => f.id),
+        currentUser?.id
+    ]);
+
+    results.innerHTML = users.map(u => `
+        <div class="friend-card">
+            <div class="friend-avatar">${(u.name || '?')[0].toUpperCase()}</div>
+            <div class="friend-info">
+                <div class="friend-name">${u.name || 'Unknown'}</div>
+                <div class="friend-email">${u.email || ''}</div>
+            </div>
+            <div class="friend-actions">
+                ${friendIds.has(u.id)
+                    ? '<span style="font-size:12px;color:var(--text-tertiary)">Already friends</span>'
+                    : `<button class="friend-btn friend-btn-add" onclick="sendFriendRequest('${u.id}')">+ Add Friend</button>`
+                }
+            </div>
+        </div>
+    `).join('');
+}
+
+// ===========================
+// COLLABORATORS MODAL (UI)
+// ===========================
+
+async function openCollaboratorsModal(tripId) {
+    const modal = document.getElementById('collaboratorsModal');
+    if (!modal) return;
+
+    modal.dataset.tripId = tripId;
+    modal.classList.add('active');
+
+    // Load current collaborators
+    await loadTripCollaborators(tripId);
+    renderCollaboratorsModal(tripId);
+}
+
+function closeCollaboratorsModal() {
+    document.getElementById('collaboratorsModal')?.classList.remove('active');
+    document.getElementById('collabSearchResults').innerHTML = '';
+    document.getElementById('collabSearchInput').value = '';
+}
+
+function renderCollaboratorsModal(tripId) {
+    const list = document.getElementById('collaboratorsList');
+    if (!list) return;
+
+    if (!currentTripCollaborators?.length) {
+        list.innerHTML = '<p class="friends-empty">No collaborators yet. Invite a friend below!</p>';
+        return;
+    }
+
+    list.innerHTML = currentTripCollaborators.map(c => `
+        <div class="friend-card">
+            <div class="friend-avatar" style="background: var(--accent-sky);">${(c.name || '?')[0].toUpperCase()}</div>
+            <div class="friend-info">
+                <div class="friend-name">${c.name || 'Unknown'}</div>
+                <div class="friend-email">${c.email || ''} · <span style="color:var(--accent-warm)">${c.role}</span></div>
+            </div>
+            <div class="friend-actions">
+                <button class="friend-btn friend-btn-remove" onclick="removeTripCollaborator('${c.collaboratorId}', '${tripId}')">Remove</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function handleCollabSearch() {
+    const input = document.getElementById('collabSearchInput');
+    const results = document.getElementById('collabSearchResults');
+    if (!input || !results) return;
+
+    const email = input.value.trim();
+    if (!email) { results.innerHTML = ''; return; }
+
+    results.innerHTML = '<p style="color: var(--text-tertiary); font-size: 13px;">Searching…</p>';
+    const users = await searchUserByEmail(email);
+
+    if (!users.length) {
+        results.innerHTML = '<p class="friends-empty">No users found.</p>';
+        return;
+    }
+
+    const tripId = document.getElementById('collaboratorsModal').dataset.tripId;
+    const existingIds = new Set((currentTripCollaborators || []).map(c => c.id));
+
+    results.innerHTML = users.map(u => `
+        <div class="friend-card">
+            <div class="friend-avatar">${(u.name || '?')[0].toUpperCase()}</div>
+            <div class="friend-info">
+                <div class="friend-name">${u.name || 'Unknown'}</div>
+                <div class="friend-email">${u.email || ''}</div>
+            </div>
+            <div class="friend-actions">
+                ${existingIds.has(u.id)
+                    ? '<span style="font-size:12px;color:var(--text-tertiary)">Already added</span>'
+                    : `<button class="friend-btn friend-btn-add" onclick="addTripCollaborator('${tripId}', '${u.id}')">Invite</button>`
+                }
+            </div>
+        </div>
+    `).join('');
+}
+
+// ===========================
+// COLLABORATOR BADGE on trip cards
+// ===========================
+
+// Patch renderHomepage to show collaborator badge on shared trips
+const _origRenderHomepage = renderHomepage;
+function renderHomepage() {
+    _origRenderHomepage();
+
+    // Add "Shared" badge to cards for shared trips
+    const grid = document.getElementById('tripsGrid');
+    if (!grid || typeof trips === 'undefined') return;
+    trips.forEach(trip => {
+        if (!trip._sharedRole) return;
+        // find card by title match (simplest without IDs on the cards)
+        grid.querySelectorAll('.trip-card').forEach(card => {
+            const title = card.querySelector('.trip-card-title')?.textContent;
+            if (title === (trip.destination || 'Trip') && !card.querySelector('.collab-badge')) {
+                const badge = document.createElement('div');
+                badge.className = 'collab-badge';
+                badge.textContent = '👥 Shared';
+                card.querySelector('.trip-card-content')?.prepend(badge);
+            }
+        });
+    });
+}
