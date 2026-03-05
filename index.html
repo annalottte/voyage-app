@@ -1807,6 +1807,20 @@
         }
         .trip-share-btn:hover { border-color: var(--accent-sky); color: var(--accent-sky); background: var(--accent-sky-light); }
 
+        .trip-delete-btn {
+            margin-top: 6px;
+            width: 100%;
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px dashed #e8c4bc;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #c0392b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .trip-delete-btn:hover { border-color: #e57b5e; background: #fde8e0; }
+
         /* Shared trip badge */
         .collab-badge {
             display: inline-block;
@@ -1845,6 +1859,48 @@
             margin-left: 6px;
             vertical-align: middle;
         }
+
+        /* ---- Weather Widget ---- */
+        .weather-widget {
+            background: linear-gradient(135deg, #e3f0f3 0%, #f0f4ff 100%);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 16px 20px;
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+        }
+        .weather-loading { color: var(--text-tertiary); font-size: 13px; }
+        .weather-main { display: flex; align-items: center; gap: 20px; width: 100%; flex-wrap: wrap; }
+        .weather-icon-temp { display: flex; align-items: center; gap: 10px; }
+        .weather-icon { font-size: 42px; line-height: 1; }
+        .weather-temp { font-size: 32px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+        .weather-temp span { font-size: 16px; font-weight: 400; color: var(--text-secondary); }
+        .weather-details { flex: 1; }
+        .weather-desc { font-size: 15px; font-weight: 600; color: var(--text-primary); text-transform: capitalize; margin-bottom: 4px; }
+        .weather-meta { font-size: 12px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap; }
+        .weather-hourly { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; padding-bottom: 4px; width: 100%; }
+        .weather-hour { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 10px; background: rgba(255,255,255,0.7); border-radius: 8px; font-size: 11px; color: var(--text-secondary); min-width: 48px; flex-shrink: 0; }
+        .weather-hour .wh-icon { font-size: 18px; }
+        .weather-hour .wh-temp { font-weight: 600; color: var(--text-primary); }
+        .weather-unavailable { font-size: 13px; color: var(--text-tertiary); }
+
+        /* ---- Scratch Map ---- */
+        .scratch-map-container { background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 16px; overflow: hidden; padding: 24px; box-shadow: var(--shadow-md); }
+        #scratchMapInner { width: 100%; position: relative; }
+        #scratchMapInner svg { width: 100%; height: auto; display: block; }
+        .scratch-map-legend { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; color: var(--text-secondary); }
+        .legend-dot { width: 12px; height: 12px; border-radius: 2px; background: var(--border-medium); display: inline-block; flex-shrink: 0; }
+        .legend-dot.visited { background: var(--accent-warm); }
+        .scratch-country { fill: #ddd6ce; stroke: #fff; stroke-width: 0.5; cursor: pointer; transition: fill 0.3s ease; }
+        .scratch-country:hover { fill: #c8bfb7; }
+        .scratch-country.visited { fill: var(--accent-warm); filter: drop-shadow(0 1px 3px rgba(217,119,87,0.4)); }
+        .scratch-country.visited:hover { fill: #c96a4a; }
+
+        /* ---- AI Summary ---- */
+        .ai-summary-text { font-size: 15px; line-height: 1.8; color: var(--text-primary); white-space: pre-wrap; padding: 8px 0; }
+        .ai-typing::after { content: '▋'; animation: blink 0.7s infinite; color: #764ba2; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
         @media (max-width: 968px) {
             .app-container {
@@ -2056,6 +2112,21 @@
                     <!-- Past trip cards will be generated here -->
                 </div>
             </div>
+
+            <!-- Scratch Map -->
+            <div class="trips-section">
+                <div class="section-header">
+                    <h2 class="section-title">🗺️ Your World</h2>
+                    <p style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;" id="scratchMapStats">Scratch off the countries you've visited</p>
+                </div>
+                <div class="scratch-map-container">
+                    <div id="scratchMapInner"></div>
+                    <div class="scratch-map-legend">
+                        <span class="legend-dot visited"></span> Visited
+                        <span class="legend-dot" style="margin-left:16px;"></span> Not yet
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2133,9 +2204,12 @@
                 <p class="memory-trip-dates" id="memoryTripDates">Loading...</p>
             </div>
 
-            <div style="text-align: center;">
+            <div style="text-align: center; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
                 <button class="map-view-btn" id="toggleMapBtn" onclick="toggleMapView()">
                     🗺️ Show Photo Map
+                </button>
+                <button class="map-view-btn" id="aiSummaryBtn" onclick="openAISummaryModal()" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    ✨ AI Journey Summary
                 </button>
             </div>
         </div>
@@ -2186,6 +2260,15 @@
             </div>
 
             <div class="day-detail-content">
+
+                <!-- Weather Widget -->
+                <div class="day-detail-section" id="weatherSection">
+                    <div class="day-detail-section-title">🌤️ Weather Forecast</div>
+                    <div id="weatherWidget" class="weather-widget">
+                        <div class="weather-loading">Fetching forecast…</div>
+                    </div>
+                </div>
+
                 <div class="day-detail-section">
                     <div class="day-detail-section-title">📝 Notes</div>
                     <textarea 
@@ -2279,6 +2362,23 @@
         </div>
     </div>
 
+    <!-- AI Journey Summary Modal -->
+    <div class="modal-overlay" id="aiSummaryModal">
+        <div class="modal" style="max-width: 640px;">
+            <h2 class="modal-title">✨ AI Journey Summary</h2>
+            <div id="aiSummaryContent" style="min-height: 120px;">
+                <div style="text-align:center; padding: 32px; color: var(--text-tertiary);">
+                    <div style="font-size: 32px; margin-bottom: 12px;">✨</div>
+                    <div>Generating your journey summary…</div>
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 24px;">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal('aiSummaryModal')">Close</button>
+                <button class="modal-btn modal-btn-primary" id="aiRegenerateBtn" onclick="generateAISummary()" style="background: linear-gradient(135deg, #667eea, #764ba2); border: none;">↺ Regenerate</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Memory Modal -->
     <div class="modal-overlay memory-modal" id="addMemoryModal">
         <div class="modal">
@@ -2329,6 +2429,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson@3/dist/topojson.min.js"></script>
     <!-- UI-only helpers -->
     <script src="ui.js"></script>
     
