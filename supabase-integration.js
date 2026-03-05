@@ -367,33 +367,38 @@ async function loadUserData(user) {
 
 async function createTrip(event) {
     event.preventDefault();
+    console.log('createTrip started');
 
     const destination = document.getElementById('tripDestinationInput').value.trim();
-    if (!destination) {
-        alert('Please enter a destination.');
-        return;
-    }
     const startDate = document.getElementById('tripStartDate').value;
     const endDate = document.getElementById('tripEndDate').value;
     const isPrivate = document.getElementById('tripPrivate').checked;
+
+    console.log('Form values:', { destination, startDate, endDate, isPrivate });
 
     try {
         let imageUrl = null;
         let headerImageUrl = null;
 
-        // Upload images to Supabase Storage
+        console.log('Image data:', !!currentTripImageData, !!currentTripHeaderData);
+
         if (currentTripImageData) {
+            console.log('Uploading cover image...');
             imageUrl = await uploadImage(currentTripImageData, 'trip-images');
+            console.log('Cover image uploaded:', imageUrl);
         }
         if (currentTripHeaderData) {
+            console.log('Uploading header image...');
             headerImageUrl = await uploadImage(currentTripHeaderData, 'trip-images');
+            console.log('Header image uploaded:', headerImageUrl);
         }
 
+        console.log('Inserting trip...');
         const { data, error } = await supabaseClient
             .from('trips')
             .insert([{
                 user_id: currentUser.id,
-                destination: destination,
+                destination,
                 start_date: startDate,
                 end_date: endDate,
                 image_url: imageUrl,
@@ -404,15 +409,23 @@ async function createTrip(event) {
             .select()
             .single();
 
+        console.log('Insert result:', data, error);
+
         if (error) throw error;
 
         trips.unshift(data);
-        closeModal('createTripModal');
-        renderHomepage();
+        console.log('trips array now:', trips.length);
+
+        const overlay = document.getElementById('createTripModal');
+        if (overlay) overlay.classList.remove('active');
         
+        renderHomepage();
+        console.log('createTrip complete');
+
     } catch (error) {
         console.error('Error creating trip:', error);
-        alert('Error creating trip. Please try again.');
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        alert('Error: ' + (error.message || JSON.stringify(error)));
     }
 }
 
