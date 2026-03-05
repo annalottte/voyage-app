@@ -502,7 +502,8 @@ function handleTripHeaderUpload(event) {
 }
 
 function closeModal(modalId) {
-  document.getElementById(modalId)?.classList.remove('active');
+  const el = document.getElementById(modalId);
+  if (el) el.classList.remove('active');
 }
 
 // ===========================
