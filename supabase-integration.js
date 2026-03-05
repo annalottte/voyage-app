@@ -797,8 +797,8 @@ async function saveMemory(event) {
         }
         
     } catch (error) {
-        console.error('Error saving memory:', error);
-        alert('Error saving memory. Please try again.');
+        console.error('Error saving memory:', error?.message, error?.code, error?.details, JSON.stringify(error));
+        alert('Error saving memory: ' + (error?.message || JSON.stringify(error)));
     }
 }
 
