@@ -1215,17 +1215,14 @@ Write in second person ("you"). Keep it genuine and heartfelt, not generic.`;
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
-        messages: [
-          { role: 'system', content: 'You are a warm, lyrical travel journal writer.' },
-          { role: 'user', content: prompt }
-        ]
+        messages: [{ role: 'user', content: prompt }]
       })
     });
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || 'Could not generate summary. Please try again.';
+    const text = data.content?.[0]?.text || 'Could not generate summary. Please try again.';
 
     // Typewriter effect
     textEl.classList.remove('ai-typing');
