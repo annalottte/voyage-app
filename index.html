@@ -11,6 +11,8 @@
   </style>
 
   <title>Voyage - Travel Planner</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -1821,6 +1823,20 @@
         }
         .trip-delete-btn:hover { border-color: #e57b5e; background: #fde8e0; }
 
+        .trip-archive-btn {
+            margin-top: 6px;
+            width: 100%;
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px dashed #b8d4c8;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #2e7d32;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .trip-archive-btn:hover { border-color: #4caf50; background: #e8f5e9; }
+
         /* Shared trip badge */
         .collab-badge {
             display: inline-block;
@@ -2383,6 +2399,7 @@
     <div class="modal-overlay memory-modal" id="addMemoryModal">
         <div class="modal">
             <h2 class="modal-title">Add Memory</h2>
+            <div id="addMemoryTripLabel" style="font-size: 13px; color: var(--accent-warm); font-weight: 600; margin-bottom: 16px; margin-top: -12px;"></div>
             <form id="addMemoryForm" onsubmit="saveMemory(event)">
                 <div class="form-group">
                     <label class="form-label">Date</label>
