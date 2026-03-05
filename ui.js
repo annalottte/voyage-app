@@ -67,14 +67,14 @@ function renderHomepage() {
 
       const start = new Date(trip.start_date || trip.startDate);
       const end   = new Date(trip.end_date   || trip.endDate);
+
       const days = (isFinite(start) && isFinite(end))
         ? Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
         : '-';
+
       const daysWithPlans = trip.days ? Object.keys(trip.days).length : 0;
       const img = trip.image_url || trip.image || '';
-      const sharedBadge = trip._sharedRole
-        ? '<div class="collab-badge">👥 Shared</div>'
-        : '';
+      const sharedBadge = trip._sharedRole ? '<div class="collab-badge">👥 Shared</div>' : '';
 
       card.innerHTML = `
         ${img ? `<img src="${img}" alt="${trip.destination || 'Trip'}" class="trip-card-image">`
@@ -85,7 +85,7 @@ function renderHomepage() {
           <div class="trip-card-dates">
             ${isFinite(start) ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
             -
-            ${isFinite(end) ? end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+            ${isFinite(end)   ? end.toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' })   : ''}
           </div>
           <div class="trip-card-stats">
             <div class="trip-card-stat">📅 ${days} days</div>
@@ -120,7 +120,7 @@ function renderHomepage() {
           <div class="trip-card-dates">
             ${isFinite(start) ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
             -
-            ${isFinite(end) ? end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+            ${isFinite(end)   ? end.toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' })   : ''}
           </div>
           <div class="trip-card-stats">
             <div class="trip-card-stat">✨ ${memoriesCount} memories</div>
@@ -820,31 +820,4 @@ async function handleCollabSearch() {
             </div>
         </div>
     `).join('');
-}
-
-// ===========================
-// COLLABORATOR BADGE on trip cards
-// ===========================
-
-// Patch renderHomepage to show collaborator badge on shared trips
-const _origRenderHomepage = renderHomepage;
-function renderHomepage() {
-    _origRenderHomepage();
-
-    // Add "Shared" badge to cards for shared trips
-    const grid = document.getElementById('tripsGrid');
-    if (!grid || typeof trips === 'undefined') return;
-    trips.forEach(trip => {
-        if (!trip._sharedRole) return;
-        // find card by title match (simplest without IDs on the cards)
-        grid.querySelectorAll('.trip-card').forEach(card => {
-            const title = card.querySelector('.trip-card-title')?.textContent;
-            if (title === (trip.destination || 'Trip') && !card.querySelector('.collab-badge')) {
-                const badge = document.createElement('div');
-                badge.className = 'collab-badge';
-                badge.textContent = '👥 Shared';
-                card.querySelector('.trip-card-content')?.prepend(badge);
-            }
-        });
-    });
 }
