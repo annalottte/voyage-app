@@ -233,41 +233,50 @@ function renderMemories() {
 }
 
 function openAddMemoryModal(tripId) {
-  // If called with a specific tripId (from trip card), set currentMemoryTrip first
+  // If called with a specific tripId, pre-select that trip
   if (tripId) {
     const trip = (pastTrips || []).find(t => t.id === tripId);
     if (trip) window.currentMemoryTrip = trip;
   }
 
-  if (!window.currentMemoryTrip) {
-    // No past trips at all — prompt user to archive a trip first
-    if (!pastTrips?.length) {
-      alert('Archive a completed trip first to start adding memories!');
-      return;
-    }
-    // Prompt them to pick which past trip
-    const tripNames = pastTrips.map((t, i) => `${i + 1}. ${t.destination}`).join('\n');
-    const choice = prompt(`Which trip is this memory for?\n\n${tripNames}\n\nEnter the number:`);
-    const idx = parseInt(choice) - 1;
-    if (isNaN(idx) || !pastTrips[idx]) return;
-    window.currentMemoryTrip = pastTrips[idx];
-  }
-
   const modal = document.getElementById('addMemoryModal');
   if (!modal) return;
 
-  // Show which trip this memory is for
-  const tripLabel = document.getElementById('addMemoryTripLabel');
-  if (tripLabel) tripLabel.textContent = `Adding to: ${currentMemoryTrip.destination}`;
+  const pickerGroup = document.getElementById('addMemoryTripPickerGroup');
+  const picker = document.getElementById('addMemoryTripPicker');
+  const label = document.getElementById('addMemoryTripLabel');
+
+  if (window.currentMemoryTrip) {
+    // Trip already known — hide picker, show label
+    if (pickerGroup) pickerGroup.style.display = 'none';
+    if (label) label.textContent = `Adding to: ${currentMemoryTrip.destination}`;
+  } else {
+    // No trip context — need to pick one
+    if (!pastTrips?.length) {
+      alert('Archive a completed trip first before adding memories!');
+      return;
+    }
+    // Populate picker
+    if (picker) {
+      picker.innerHTML = '<option value="">Select a trip…</option>';
+      (pastTrips || []).forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.destination;
+        picker.appendChild(opt);
+      });
+    }
+    if (pickerGroup) pickerGroup.style.display = 'block';
+    if (label) label.textContent = '';
+  }
 
   modal.classList.add('active');
   document.getElementById('addMemoryForm')?.reset();
   const preview = document.getElementById('memoryPhotosPreview');
   if (preview) preview.innerHTML = '';
-
   currentMemoryPhotos = [];
 
-  const start = currentMemoryTrip.start_date || currentMemoryTrip.startDate;
+  const start = currentMemoryTrip?.start_date || currentMemoryTrip?.startDate;
   const dateInput = document.getElementById('memoryDate');
   if (dateInput && start) dateInput.value = start;
 }
@@ -988,7 +997,8 @@ async function initScratchMap() {
   const container = document.getElementById('scratchMapInner');
   if (!container || scratchMapReady) return;
 
-  // Only restore manually clicked countries from localStorage
+  // Always start fresh, then restore from localStorage
+  visitedCountries = new Set();
   const saved = localStorage.getItem(`voyage_scratch_${currentUser?.id}`);
   if (saved) {
     try { visitedCountries = new Set(JSON.parse(saved)); } catch(e) {}
@@ -1046,8 +1056,7 @@ async function initScratchMap() {
       .enter().append('path')
       .attr('class', d => {
         const name = (countryNames[d.id] || '').toLowerCase();
-        const isVisited = visitedCountries.has(name) ||
-          [...visitedCountries].some(v => name.includes(v) || v.includes(name));
+        const isVisited = visitedCountries.has(name);
         return 'scratch-country' + (isVisited ? ' visited' : '');
       })
       .attr('d', path)
