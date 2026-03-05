@@ -711,6 +711,18 @@
             text-decoration: underline;
         }
 
+        .forgot-link {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .forgot-link:hover {
+            color: var(--accent-warm);
+            text-decoration: underline;
+        }
+
         .privacy-toggle {
             background: var(--bg-primary);
             padding: 16px;
@@ -1877,10 +1889,32 @@
             <form class="auth-form" onsubmit="login(event)">
                 <input type="email" class="auth-input" placeholder="Email" required id="loginEmail">
                 <input type="password" class="auth-input" placeholder="Password" required id="loginPassword">
+                <div style="text-align: right; margin-top: -8px;">
+                    <a href="#" class="forgot-link" onclick="showPage('forgotPasswordPage'); return false;">Forgot password?</a>
+                </div>
                 <button type="submit" class="auth-btn">Log In</button>
             </form>
             <div class="auth-link">
                 Don't have an account? <a href="#" onclick="showPage('signupPage'); return false;">Sign up</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Page -->
+    <div id="forgotPasswordPage" class="page auth-page">
+        <div class="auth-container">
+            <div class="auth-logo">Voyage</div>
+            <p class="auth-subtitle">Reset your password</p>
+            <div id="forgotPasswordSuccess" style="display:none; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 10px; padding: 16px; margin-bottom: 20px; font-size: 14px; color: #2e7d32; text-align: center;">
+                ✅ Check your email for a password reset link!
+            </div>
+            <form class="auth-form" onsubmit="sendPasswordReset(event)">
+                <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 4px;">Enter the email address for your account and we'll send you a link to reset your password.</p>
+                <input type="email" class="auth-input" placeholder="Your email address" required id="resetEmail">
+                <button type="submit" class="auth-btn" id="resetSubmitBtn">Send Reset Link</button>
+            </form>
+            <div class="auth-link">
+                <a href="#" onclick="showPage('loginPage'); return false;">← Back to login</a>
             </div>
         </div>
     </div>
@@ -1963,10 +1997,40 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal" style="max-width: 440px;">
+            <h2 class="modal-title">⚙️ Settings</h2>
+
+            <div style="margin-bottom: 28px;">
+                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-tertiary); margin-bottom: 14px;">Account</div>
+                <div id="settingsUserInfo" style="background: var(--bg-primary); border-radius: 10px; padding: 16px; margin-bottom: 16px; font-size: 14px; color: var(--text-secondary);"></div>
+                <button class="modal-btn modal-btn-secondary" style="width: 100%; margin-bottom: 10px;" onclick="closeModal('settingsModal'); logout()">
+                    🚪 Log Out
+                </button>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-light); padding-top: 24px;">
+                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #c0392b; margin-bottom: 14px;">Danger Zone</div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
+                    Permanently delete your account and all associated trips, memories, and data. This cannot be undone.
+                </p>
+                <button onclick="confirmDeleteAccount()" style="width: 100%; padding: 12px; background: transparent; border: 1px solid #e57b5e; border-radius: 8px; color: #c0392b; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;"
+                    onmouseover="this.style.background='#fde8e0'" onmouseout="this.style.background='transparent'">
+                    🗑️ Delete My Account
+                </button>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 24px;">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal('settingsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Homepage -->
     <div id="homepage" class="page">
         <button class="friends-nav-btn" id="friendsNavBtn" onclick="openFriendsPage()">👥 Friends</button>
-        <button class="settings-btn" onclick="logout()">⚙️ Settings & Logout</button>
+        <button class="settings-btn" onclick="openSettingsModal()">⚙️ Settings</button>
         <div class="homepage">
             <div class="homepage-header">
                 <h1 class="homepage-title">Voyage</h1>
