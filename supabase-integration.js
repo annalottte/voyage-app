@@ -689,14 +689,42 @@ async function deleteLink(index) {
 async function saveMemory(event) {
     event.preventDefault();
 
-    // Resolve trip — may come from picker if opened from homepage
+    // Resolve trip — may come from picker or freehand destination
     if (!currentMemoryTrip) {
         const picker = document.getElementById('addMemoryTripPicker');
-        const tripId = picker?.value;
-        if (!tripId) { alert('Please select a trip.'); return; }
-        const trip = (pastTrips || []).find(t => t.id === tripId);
-        if (!trip) { alert('Trip not found.'); return; }
-        window.currentMemoryTrip = trip;
+        const pickerValue = picker?.value;
+
+        if (pickerValue && pickerValue !== '__new__') {
+            // Existing trip selected
+            const trip = (pastTrips || []).find(t => t.id === pickerValue);
+            if (!trip) { alert('Trip not found.'); return; }
+            window.currentMemoryTrip = trip;
+
+        } else {
+            // Freehand — create a new past trip on the fly
+            const destination = document.getElementById('addMemoryDestination')?.value?.trim();
+            if (!destination) { alert('Please enter a destination.'); return; }
+
+            const memDate = document.getElementById('memoryDate')?.value;
+            const { data: newTrip, error } = await supabaseClient
+                .from('trips')
+                .insert([{
+                    user_id: currentUser.id,
+                    destination,
+                    start_date: memDate || new Date().toISOString().split('T')[0],
+                    end_date: memDate || new Date().toISOString().split('T')[0],
+                    is_past: true,
+                    is_private: false
+                }])
+                .select()
+                .single();
+
+            if (error) { alert('Error creating trip: ' + error.message); return; }
+
+            newTrip.memories = [];
+            pastTrips.unshift(newTrip);
+            window.currentMemoryTrip = newTrip;
+        }
     }
     
     const date = document.getElementById('memoryDate').value;
