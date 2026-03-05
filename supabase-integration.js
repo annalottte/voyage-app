@@ -611,3 +611,229 @@ async function getOrCreateDay(tripId, date) {
 
     return newDay.id;
 }
+
+// ============================================================================
+// FRIENDS & COLLABORATION FUNCTIONS
+// ============================================================================
+
+// ---------- State ----------
+let friends = [];           // accepted friends
+let friendRequests = [];    // pending incoming requests
+let currentTripCollaborators = []; // collaborators for currently open trip
+
+// ---------- Search for users by email ----------
+async function searchUserByEmail(email) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('id, name, email')
+            .ilike('email', email.trim())
+            .neq('id', currentUser.id)
+            .limit(5);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Error searching users:', error);
+        return [];
+    }
+}
+
+// ---------- Send a friend request ----------
+async function sendFriendRequest(addresseeId) {
+    try {
+        // Check if friendship already exists
+        const { data: existing } = await supabaseClient
+            .from('friendships')
+            .select('id, status')
+            .or(`and(requester_id.eq.${currentUser.id},addressee_id.eq.${addresseeId}),and(requester_id.eq.${addresseeId},addressee_id.eq.${currentUser.id})`)
+            .maybeSingle();
+
+        if (existing) {
+            const msgs = { pending: 'Friend request already sent!', accepted: 'You are already friends!', declined: 'This request was declined.' };
+            alert(msgs[existing.status] || 'Friendship already exists.');
+            return;
+        }
+
+        const { error } = await supabaseClient
+            .from('friendships')
+            .insert([{ requester_id: currentUser.id, addressee_id: addresseeId }]);
+
+        if (error) throw error;
+        alert('Friend request sent! 🎉');
+    } catch (error) {
+        console.error('Error sending friend request:', error);
+        alert('Error sending friend request: ' + error.message);
+    }
+}
+
+// ---------- Accept / Decline friend request ----------
+async function respondToFriendRequest(friendshipId, accept) {
+    try {
+        const { error } = await supabaseClient
+            .from('friendships')
+            .update({ status: accept ? 'accepted' : 'declined', updated_at: new Date().toISOString() })
+            .eq('id', friendshipId);
+
+        if (error) throw error;
+
+        // Refresh friends list
+        await loadFriends();
+        renderFriendsPage();
+    } catch (error) {
+        console.error('Error responding to friend request:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+// ---------- Remove friend ----------
+async function removeFriend(friendshipId) {
+    if (!confirm('Remove this friend?')) return;
+    try {
+        const { error } = await supabaseClient
+            .from('friendships')
+            .delete()
+            .eq('id', friendshipId);
+
+        if (error) throw error;
+        await loadFriends();
+        renderFriendsPage();
+    } catch (error) {
+        console.error('Error removing friend:', error);
+    }
+}
+
+// ---------- Load friends + pending requests ----------
+async function loadFriends() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('friendships')
+            .select(`
+                id, status, requester_id, addressee_id,
+                requester:profiles!friendships_requester_id_fkey(id, name, email),
+                addressee:profiles!friendships_addressee_id_fkey(id, name, email)
+            `)
+            .or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
+
+        if (error) throw error;
+
+        friends = (data || [])
+            .filter(f => f.status === 'accepted')
+            .map(f => {
+                const isMine = f.requester_id === currentUser.id;
+                const other = isMine ? f.addressee : f.requester;
+                return { friendshipId: f.id, ...other };
+            });
+
+        friendRequests = (data || [])
+            .filter(f => f.status === 'pending' && f.addressee_id === currentUser.id)
+            .map(f => ({ friendshipId: f.id, ...f.requester }));
+
+        // Show notification dot if there are pending requests
+        const btn = document.getElementById('friendsNavBtn');
+        if (btn) {
+            const existing = btn.querySelector('.request-dot');
+            if (existing) existing.remove();
+            if (friendRequests.length) {
+                const dot = document.createElement('span');
+                dot.className = 'request-dot';
+                btn.appendChild(dot);
+            }
+        }
+
+    } catch (error) {
+        console.error('Error loading friends:', error);
+    }
+}
+
+// ---------- Load collaborators for a trip ----------
+async function loadTripCollaborators(tripId) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('trip_collaborators')
+            .select(`
+                id, role,
+                user:profiles!trip_collaborators_user_id_fkey(id, name, email)
+            `)
+            .eq('trip_id', tripId);
+
+        if (error) throw error;
+        currentTripCollaborators = (data || []).map(c => ({
+            collaboratorId: c.id,
+            role: c.role,
+            ...c.user
+        }));
+        return currentTripCollaborators;
+    } catch (error) {
+        console.error('Error loading collaborators:', error);
+        return [];
+    }
+}
+
+// ---------- Add a collaborator to a trip ----------
+async function addTripCollaborator(tripId, userId, role = 'editor') {
+    try {
+        const { error } = await supabaseClient
+            .from('trip_collaborators')
+            .insert([{ trip_id: tripId, user_id: userId, role, invited_by: currentUser.id }]);
+
+        if (error) throw error;
+        await loadTripCollaborators(tripId);
+        renderCollaboratorsModal(tripId);
+        alert('Collaborator added! They can now co-plan this trip. 🌍');
+    } catch (error) {
+        console.error('Error adding collaborator:', error);
+        alert('Error adding collaborator: ' + error.message);
+    }
+}
+
+// ---------- Remove a collaborator ----------
+async function removeTripCollaborator(collaboratorId, tripId) {
+    if (!confirm('Remove this collaborator from the trip?')) return;
+    try {
+        const { error } = await supabaseClient
+            .from('trip_collaborators')
+            .delete()
+            .eq('id', collaboratorId);
+
+        if (error) throw error;
+        await loadTripCollaborators(tripId);
+        renderCollaboratorsModal(tripId);
+    } catch (error) {
+        console.error('Error removing collaborator:', error);
+    }
+}
+
+// ---------- Load shared trips (trips where user is a collaborator) ----------
+async function loadSharedTrips() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('trip_collaborators')
+            .select(`
+                role,
+                trip:trips(*)
+            `)
+            .eq('user_id', currentUser.id);
+
+        if (error) throw error;
+        return (data || []).map(c => ({ ...c.trip, _sharedRole: c.role }));
+    } catch (error) {
+        console.error('Error loading shared trips:', error);
+        return [];
+    }
+}
+
+// Extend loadUserData to also load friends + shared trips
+const _originalLoadUserData = loadUserData;
+async function loadUserData(user) {
+    await _originalLoadUserData(user);
+    await loadFriends();
+    
+    // Load shared trips and merge into trips list
+    const shared = await loadSharedTrips();
+    if (shared.length) {
+        const myIds = new Set(trips.map(t => t.id));
+        shared.forEach(t => { if (!myIds.has(t.id)) trips.push(t); });
+        renderHomepage();
+    }
+}
