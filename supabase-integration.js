@@ -495,12 +495,9 @@ async function archiveTrip(tripId) {
         alert('Error archiving trip: ' + error.message);
     }
 }
+
+async function openTrip(tripId) {
     try {
-        const { data: trip, error } = await supabaseClient
-            .from('trips')
-            .select('*')
-            .eq('id', tripId)
-            .single();
 
         if (error) throw error;
 
