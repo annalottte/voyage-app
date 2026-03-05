@@ -895,26 +895,33 @@ async function loadFriends() {
     try {
         const { data, error } = await supabaseClient
             .from('friendships')
-            .select(`
-                id, status, requester_id, addressee_id,
-                requester:profiles!friendships_requester_id_fkey(id, name, email),
-                addressee:profiles!friendships_addressee_id_fkey(id, name, email)
-            `)
+            .select('id, status, requester_id, addressee_id')
             .or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
 
         if (error) throw error;
 
+        // Fetch profile names separately
+        const otherIds = (data || []).map(f =>
+            f.requester_id === currentUser.id ? f.addressee_id : f.requester_id
+        );
+
+        const { data: profiles } = await supabaseClient
+            .from('profiles')
+            .select('id, name, email')
+            .in('id', otherIds.length ? otherIds : ['00000000-0000-0000-0000-000000000000']);
+
+        const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+
         friends = (data || [])
             .filter(f => f.status === 'accepted')
             .map(f => {
-                const isMine = f.requester_id === currentUser.id;
-                const other = isMine ? f.addressee : f.requester;
-                return { friendshipId: f.id, ...other };
+                const otherId = f.requester_id === currentUser.id ? f.addressee_id : f.requester_id;
+                return { friendshipId: f.id, ...profileMap[otherId] };
             });
 
         friendRequests = (data || [])
             .filter(f => f.status === 'pending' && f.addressee_id === currentUser.id)
-            .map(f => ({ friendshipId: f.id, ...f.requester }));
+            .map(f => ({ friendshipId: f.id, ...profileMap[f.requester_id] }));
 
         // Show notification dot if there are pending requests
         const btn = document.getElementById('friendsNavBtn');
