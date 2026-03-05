@@ -2404,9 +2404,14 @@
             <!-- Trip picker — shown when adding from homepage with no trip pre-selected -->
             <div id="addMemoryTripPickerGroup" class="form-group" style="display:none;">
                 <label class="form-label">Which trip is this memory for?</label>
-                <select class="form-input" id="addMemoryTripPicker">
-                    <option value="">Select a trip…</option>
+                <select class="form-input" id="addMemoryTripPicker" onchange="handleMemoryTripPickerChange(this.value)">
+                    <option value="">— Choose an existing trip —</option>
                 </select>
+            </div>
+            <!-- Freehand destination — shown when "new destination" is chosen -->
+            <div id="addMemoryFreehandGroup" class="form-group" style="display:none;">
+                <label class="form-label">Destination</label>
+                <input type="text" class="form-input" id="addMemoryDestination" placeholder="e.g., Kyoto, Japan">
             </div>
             <form id="addMemoryForm" onsubmit="saveMemory(event)">
                 <div class="form-group">
