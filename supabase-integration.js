@@ -795,11 +795,7 @@ let currentTripCollaborators = []; // collaborators for currently open trip
 async function searchUserByEmail(email) {
     try {
         const { data, error } = await supabaseClient
-            .from('profiles')
-            .select('id, name, email')
-            .ilike('email', email.trim())
-            .neq('id', currentUser.id)
-            .limit(5);
+            .rpc('search_users_by_email', { search_email: email.trim() });
 
         if (error) throw error;
         return data || [];
