@@ -1211,18 +1211,21 @@ Write in second person ("you"). Keep it genuine and heartfelt, not generic.`;
   const textEl = content.querySelector('.ai-summary-text');
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/ai-summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'gpt-4o-mini',
         max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [
+          { role: 'system', content: 'You are a warm, lyrical travel journal writer.' },
+          { role: 'user', content: prompt }
+        ]
       })
     });
 
     const data = await response.json();
-    const text = data.content?.[0]?.text || 'Could not generate summary. Please try again.';
+    const text = data.choices?.[0]?.message?.content || 'Could not generate summary. Please try again.';
 
     // Typewriter effect
     textEl.classList.remove('ai-typing');
