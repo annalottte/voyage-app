@@ -8,11 +8,12 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+                'x-api-key': process.env.ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify(req.body)
         });
@@ -22,6 +23,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Proxy error:', error);
-        return res.status(500).json({ error: 'Failed to reach OpenAI API' });
+        return res.status(500).json({ error: 'Failed to reach Anthropic API' });
     }
 }
