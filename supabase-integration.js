@@ -260,11 +260,22 @@ async function confirmDeleteAccount() {
         // 3. Delete profile
         await supabaseClient.from('profiles').delete().eq('id', userId);
 
-        // 4. Delete the auth user via Supabase (requires the user to be signed in)
-        const { error: deleteError } = await supabaseClient.rpc('delete_user');
-        if (deleteError) {
-            // Fallback: sign out even if RPC not available
-            console.warn('delete_user RPC not available, signing out instead:', deleteError.message);
+        // 4. Call the Edge Function to delete the auth.users record server-side
+        const { data: { session } } = await supabaseClient.auth.getSession()
+        const response = await fetch(
+            `${supabaseClient.supabaseUrl}/functions/v1/delete-user`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        )
+
+        if (!response.ok) {
+            const err = await response.json()
+            throw new Error(err.error || 'Edge Function error')
         }
 
         await supabaseClient.auth.signOut();
@@ -350,14 +361,6 @@ async function loadUserData(user) {
                 }));
             }
         }
-        
-        // Load friends and shared trips
-        await loadFriends();
-        const shared = await loadSharedTrips();
-        if (shared.length) {
-            const myIds = new Set(trips.map(t => t.id));
-            shared.forEach(t => { if (!myIds.has(t.id)) trips.push(t); });
-        }
 
         document.getElementById('welcomeMessage').textContent = `Welcome back, ${currentUser.name}!`;
         showPage('homepage');
@@ -375,38 +378,33 @@ async function loadUserData(user) {
 
 async function createTrip(event) {
     event.preventDefault();
-    console.log('createTrip started');
 
     const destination = document.getElementById('tripDestinationInput').value.trim();
+    if (!destination) {
+        alert('Please enter a destination.');
+        return;
+    }
     const startDate = document.getElementById('tripStartDate').value;
     const endDate = document.getElementById('tripEndDate').value;
     const isPrivate = document.getElementById('tripPrivate').checked;
-
-    console.log('Form values:', { destination, startDate, endDate, isPrivate });
 
     try {
         let imageUrl = null;
         let headerImageUrl = null;
 
-        console.log('Image data:', !!currentTripImageData, !!currentTripHeaderData);
-
+        // Upload images to Supabase Storage
         if (currentTripImageData) {
-            console.log('Uploading cover image...');
             imageUrl = await uploadImage(currentTripImageData, 'trip-images');
-            console.log('Cover image uploaded:', imageUrl);
         }
         if (currentTripHeaderData) {
-            console.log('Uploading header image...');
             headerImageUrl = await uploadImage(currentTripHeaderData, 'trip-images');
-            console.log('Header image uploaded:', headerImageUrl);
         }
 
-        console.log('Inserting trip...');
         const { data, error } = await supabaseClient
             .from('trips')
             .insert([{
                 user_id: currentUser.id,
-                destination,
+                destination: destination,
                 start_date: startDate,
                 end_date: endDate,
                 image_url: imageUrl,
@@ -417,27 +415,86 @@ async function createTrip(event) {
             .select()
             .single();
 
-        console.log('Insert result:', data, error);
-
         if (error) throw error;
 
         trips.unshift(data);
-        console.log('trips array now:', trips.length);
-
-        const overlay = document.getElementById('createTripModal');
-        if (overlay) overlay.classList.remove('active');
-        
+        closeModal('createTripModal');
         renderHomepage();
-        console.log('createTrip complete');
-
+        
     } catch (error) {
         console.error('Error creating trip:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-        alert('Error: ' + (error.message || JSON.stringify(error)));
+        alert('Error creating trip. Please try again.');
     }
 }
 
-async function openTrip(tripId) {
+async function deleteTrip(tripId) {
+    if (!confirm('Are you sure you want to delete this trip? This cannot be undone.')) return;
+
+    try {
+        // Delete child data first
+        const { data: days } = await supabaseClient
+            .from('trip_days')
+            .select('id')
+            .eq('trip_id', tripId);
+
+        if (days?.length) {
+            const dayIds = days.map(d => d.id);
+            await supabaseClient.from('day_photos').delete().in('trip_day_id', dayIds);
+            await supabaseClient.from('day_links').delete().in('trip_day_id', dayIds);
+            await supabaseClient.from('trip_days').delete().eq('trip_id', tripId);
+        }
+
+        await supabaseClient.from('trip_collaborators').delete().eq('trip_id', tripId);
+        await supabaseClient.from('memories').delete().eq('trip_id', tripId);
+
+        const { error } = await supabaseClient
+            .from('trips')
+            .delete()
+            .eq('id', tripId);
+
+        if (error) throw error;
+
+        // Remove from local array and re-render
+        trips = trips.filter(t => t.id !== tripId);
+        renderHomepage();
+
+    } catch (error) {
+        console.error('Error deleting trip:', error);
+        alert('Error deleting trip: ' + error.message);
+    }
+}
+
+async function archiveTrip(tripId) {
+    if (!confirm('Archive this trip to Memory Lane? It will move from Your Trips to Memory Lane where you can add memories and reflections.')) return;
+
+    try {
+        const { error } = await supabaseClient
+            .from('trips')
+            .update({ is_past: true })
+            .eq('id', tripId);
+
+        if (error) throw error;
+
+        // Move locally from trips → pastTrips
+        const trip = trips.find(t => t.id === tripId);
+        if (trip) {
+            trip.is_past = true;
+            trip.memories = trip.memories || [];
+            trips = trips.filter(t => t.id !== tripId);
+            pastTrips.unshift(trip);
+        }
+
+        renderHomepage();
+
+        if (confirm('Trip archived! 🎉 Want to open Memory Lane for this trip now?')) {
+            openMemoryJournal(tripId);
+        }
+
+    } catch (error) {
+        console.error('Error archiving trip:', error);
+        alert('Error archiving trip: ' + error.message);
+    }
+}
     try {
         const { data: trip, error } = await supabaseClient
             .from('trips')
@@ -685,6 +742,11 @@ async function saveMemory(event) {
         closeModal('addMemoryModal');
         renderMemories();
         renderHomepage();
+
+        // If we're not on the memory journal page, clear so next open is fresh
+        if (currentPage !== 'memoryJournalPage') {
+            window.currentMemoryTrip = null;
+        }
         
     } catch (error) {
         console.error('Error saving memory:', error);
@@ -816,7 +878,11 @@ let currentTripCollaborators = []; // collaborators for currently open trip
 async function searchUserByEmail(email) {
     try {
         const { data, error } = await supabaseClient
-            .rpc('search_users_by_email', { search_email: email.trim() });
+            .from('profiles')
+            .select('id, name, email')
+            .ilike('email', email.trim())
+            .neq('id', currentUser.id)
+            .limit(5);
 
         if (error) throw error;
         return data || [];
@@ -895,33 +961,26 @@ async function loadFriends() {
     try {
         const { data, error } = await supabaseClient
             .from('friendships')
-            .select('id, status, requester_id, addressee_id')
+            .select(`
+                id, status, requester_id, addressee_id,
+                requester:profiles!friendships_requester_id_fkey(id, name, email),
+                addressee:profiles!friendships_addressee_id_fkey(id, name, email)
+            `)
             .or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
 
         if (error) throw error;
 
-        // Fetch profile names separately
-        const otherIds = (data || []).map(f =>
-            f.requester_id === currentUser.id ? f.addressee_id : f.requester_id
-        );
-
-        const { data: profiles } = await supabaseClient
-            .from('profiles')
-            .select('id, name, email')
-            .in('id', otherIds.length ? otherIds : ['00000000-0000-0000-0000-000000000000']);
-
-        const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
-
         friends = (data || [])
             .filter(f => f.status === 'accepted')
             .map(f => {
-                const otherId = f.requester_id === currentUser.id ? f.addressee_id : f.requester_id;
-                return { friendshipId: f.id, ...profileMap[otherId] };
+                const isMine = f.requester_id === currentUser.id;
+                const other = isMine ? f.addressee : f.requester;
+                return { friendshipId: f.id, ...other };
             });
 
         friendRequests = (data || [])
             .filter(f => f.status === 'pending' && f.addressee_id === currentUser.id)
-            .map(f => ({ friendshipId: f.id, ...profileMap[f.requester_id] }));
+            .map(f => ({ friendshipId: f.id, ...f.requester }));
 
         // Show notification dot if there are pending requests
         const btn = document.getElementById('friendsNavBtn');
@@ -1014,5 +1073,20 @@ async function loadSharedTrips() {
     } catch (error) {
         console.error('Error loading shared trips:', error);
         return [];
+    }
+}
+
+// Extend loadUserData to also load friends + shared trips
+const _originalLoadUserData = loadUserData;
+async function loadUserData(user) {
+    await _originalLoadUserData(user);
+    await loadFriends();
+    
+    // Load shared trips and merge into trips list
+    const shared = await loadSharedTrips();
+    if (shared.length) {
+        const myIds = new Set(trips.map(t => t.id));
+        shared.forEach(t => { if (!myIds.has(t.id)) trips.push(t); });
+        renderHomepage();
     }
 }
