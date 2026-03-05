@@ -67,23 +67,25 @@ function renderHomepage() {
 
       const start = new Date(trip.start_date || trip.startDate);
       const end   = new Date(trip.end_date   || trip.endDate);
-
       const days = (isFinite(start) && isFinite(end))
         ? Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
         : '-';
-
       const daysWithPlans = trip.days ? Object.keys(trip.days).length : 0;
       const img = trip.image_url || trip.image || '';
+      const sharedBadge = trip._sharedRole
+        ? '<div class="collab-badge">👥 Shared</div>'
+        : '';
 
       card.innerHTML = `
         ${img ? `<img src="${img}" alt="${trip.destination || 'Trip'}" class="trip-card-image">`
                : '<div class="trip-card-image"></div>'}
         <div class="trip-card-content">
+          ${sharedBadge}
           <div class="trip-card-title">${trip.destination || 'Trip'}</div>
           <div class="trip-card-dates">
             ${isFinite(start) ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
             -
-            ${isFinite(end)   ? end.toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' })   : ''}
+            ${isFinite(end) ? end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
           </div>
           <div class="trip-card-stats">
             <div class="trip-card-stat">📅 ${days} days</div>
@@ -118,7 +120,7 @@ function renderHomepage() {
           <div class="trip-card-dates">
             ${isFinite(start) ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
             -
-            ${isFinite(end)   ? end.toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' })   : ''}
+            ${isFinite(end) ? end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
           </div>
           <div class="trip-card-stats">
             <div class="trip-card-stat">✨ ${memoriesCount} memories</div>
