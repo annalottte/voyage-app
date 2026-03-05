@@ -1,12 +1,19 @@
 export default async function handler(req, res) {
+    // Full environment debug
+    const allEnvKeys = Object.keys(process.env).filter(k => 
+        !k.includes('npm_') && !k.includes('VERCEL_') && k !== 'PATH' && k !== 'HOME'
+    );
+    
+    const debug = {
+        hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
+        keyStart: process.env.ANTHROPIC_API_KEY ? process.env.ANTHROPIC_API_KEY.substring(0, 10) : 'NOT SET',
+        otherEnvKeys: allEnvKeys,
+        nodeEnv: process.env.NODE_ENV,
+        method: req.method
+    };
+
     if (req.method !== 'POST') {
-        // Temporary debug — remove after fixing
-        const key = process.env.ANTHROPIC_API_KEY;
-        return res.status(405).json({ 
-            error: 'Method not allowed',
-            debug_hasKey: !!key,
-            debug_keyStart: key ? key.substring(0, 10) : 'NOT SET'
-        });
+        return res.status(405).json({ error: 'Method not allowed', debug });
     }
 
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -29,6 +36,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Proxy error:', error);
-        return res.status(500).json({ error: 'Failed to reach Anthropic API' });
+        return res.status(500).json({ error: 'Failed to reach Anthropic API', debug });
     }
 }
