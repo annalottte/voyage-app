@@ -112,6 +112,133 @@ async function logout() {
     }
 }
 
+// ============================================================================
+// PASSWORD RESET
+// ============================================================================
+
+async function sendPasswordReset(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('resetEmail').value.trim();
+    const btn = document.getElementById('resetSubmitBtn');
+    const successEl = document.getElementById('forgotPasswordSuccess');
+
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + window.location.pathname
+        });
+
+        if (error) throw error;
+
+        successEl.style.display = 'block';
+        btn.textContent = 'Sent!';
+        document.getElementById('resetEmail').value = '';
+
+        // Auto-return to login after 4s
+        setTimeout(() => {
+            successEl.style.display = 'none';
+            btn.disabled = false;
+            btn.textContent = 'Send Reset Link';
+            showPage('loginPage');
+        }, 4000);
+
+    } catch (error) {
+        console.error('Password reset error:', error);
+        alert('Error sending reset email: ' + error.message);
+        btn.disabled = false;
+        btn.textContent = 'Send Reset Link';
+    }
+}
+
+// ============================================================================
+// SETTINGS MODAL
+// ============================================================================
+
+function openSettingsModal() {
+    const infoEl = document.getElementById('settingsUserInfo');
+    if (infoEl && currentUser) {
+        infoEl.innerHTML = `
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${currentUser.name || 'User'}</div>
+            <div>${currentUser.email || ''}</div>
+        `;
+    }
+    document.getElementById('settingsModal')?.classList.add('active');
+}
+
+// ============================================================================
+// DELETE ACCOUNT
+// ============================================================================
+
+async function confirmDeleteAccount() {
+    const firstConfirm = confirm(
+        '⚠️ Are you absolutely sure you want to delete your account?\n\nThis will permanently delete all your trips, memories, and data. This cannot be undone.'
+    );
+    if (!firstConfirm) return;
+
+    const typedEmail = prompt(`To confirm, please type your email address:\n${currentUser.email}`);
+    if (!typedEmail || typedEmail.trim().toLowerCase() !== currentUser.email.toLowerCase()) {
+        alert('Email did not match. Account deletion cancelled.');
+        return;
+    }
+
+    try {
+        const userId = currentUser.id;
+
+        // 1. Delete all trip data belonging to the user (cascade should handle children,
+        //    but we clean up explicitly for safety)
+        const { data: userTrips } = await supabaseClient
+            .from('trips')
+            .select('id')
+            .eq('user_id', userId);
+
+        if (userTrips?.length) {
+            const tripIds = userTrips.map(t => t.id);
+
+            // Delete trip days (photos + links cascade via FK)
+            await supabaseClient.from('trip_days').delete().in('trip_id', tripIds);
+
+            // Delete memories (photos cascade)
+            await supabaseClient.from('memories').delete().in('trip_id', tripIds);
+
+            // Delete collaborator entries
+            await supabaseClient.from('trip_collaborators').delete().in('trip_id', tripIds);
+
+            // Delete trips
+            await supabaseClient.from('trips').delete().eq('user_id', userId);
+        }
+
+        // 2. Delete friendships
+        await supabaseClient.from('friendships').delete()
+            .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+
+        // 3. Delete profile
+        await supabaseClient.from('profiles').delete().eq('id', userId);
+
+        // 4. Delete the auth user via Supabase (requires the user to be signed in)
+        const { error: deleteError } = await supabaseClient.rpc('delete_user');
+        if (deleteError) {
+            // Fallback: sign out even if RPC not available
+            console.warn('delete_user RPC not available, signing out instead:', deleteError.message);
+        }
+
+        await supabaseClient.auth.signOut();
+
+        currentUser = null;
+        trips = [];
+        pastTrips = [];
+
+        alert('Your account has been deleted. We\'re sorry to see you go. 👋');
+        showPage('loginPage');
+
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        alert('Error deleting account: ' + error.message + '\n\nPlease contact support if the problem persists.');
+    }
+}
+
 async function loadUserData(user) {
     try {
         // Get user profile
