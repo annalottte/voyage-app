@@ -153,6 +153,49 @@ async function sendPasswordReset(event) {
     }
 }
 
+async function submitNewPassword(event) {
+    event.preventDefault();
+
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmNewPassword').value;
+    const btn = document.getElementById('newPasswordBtn');
+    const errorEl = document.getElementById('resetPasswordError');
+
+    errorEl.style.display = 'none';
+
+    if (newPassword !== confirmPassword) {
+        errorEl.textContent = 'Passwords do not match.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        errorEl.textContent = 'Password must be at least 6 characters.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Updating…';
+
+    try {
+        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+        if (error) throw error;
+
+        alert('✅ Password updated successfully! Please log in with your new password.');
+        await supabaseClient.auth.signOut();
+        showPage('loginPage');
+
+    } catch (error) {
+        console.error('Password update error:', error);
+        errorEl.textContent = 'Error updating password: ' + error.message;
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Update Password';
+    }
+}
+
 // ============================================================================
 // SETTINGS MODAL
 // ============================================================================
