@@ -2312,6 +2312,20 @@
         </div>
     </div>
 
+    <!-- Reset Password Page (shown after clicking email link) -->
+    <div id="resetPasswordPage" class="page auth-page">
+        <div class="auth-container">
+            <div class="auth-logo">Voyage</div>
+            <p class="auth-subtitle">Choose a new password</p>
+            <div id="resetPasswordError" style="display:none; background:#fde8e0; border:1px solid #e57b5e; border-radius:10px; padding:14px; margin-bottom:16px; font-size:14px; color:#c0392b; text-align:center;"></div>
+            <form class="auth-form" onsubmit="submitNewPassword(event)">
+                <input type="password" class="auth-input" placeholder="New password" required id="newPassword" minlength="6">
+                <input type="password" class="auth-input" placeholder="Confirm new password" required id="confirmNewPassword" minlength="6">
+                <button type="submit" class="auth-btn" id="newPasswordBtn">Update Password</button>
+            </form>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2324,32 +2338,47 @@
     <!-- Auth-driven start -->
   <script>
   async function bootstrap() {
-    console.log("Bootstrap starting…");
-  
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    console.log("Pages hidden");
-  
+
+    // Supabase puts the recovery token in the URL hash as:
+    // #access_token=...&type=recovery  (older flow)
+    // or navigates via onAuthStateChange with event = PASSWORD_RECOVERY (newer PKCE flow)
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash.replace('#', '?'));
+    const tokenType = params.get('type');
+
+    if (tokenType === 'recovery') {
+      // Older implicit flow — Supabase has already exchanged the token into a session
+      document.getElementById('loadingScreen').style.display = 'none';
+      showPage('resetPasswordPage');
+      // Clean the URL so a refresh doesn't re-trigger this
+      history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+
+    // Listen for PASSWORD_RECOVERY event (PKCE / newer Supabase flow)
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        document.getElementById('loadingScreen').style.display = 'none';
+        showPage('resetPasswordPage');
+        history.replaceState(null, '', window.location.pathname);
+      }
+    });
+
     const { data: { session }, error } = await supabaseClient.auth.getSession();
-    console.log("Session response:", session, error);
-  
+
     document.getElementById("loadingScreen").style.display = "none";
-    console.log("Loading hidden");
-  
+
     if (session) {
-      console.log("User IS logged in");
       try {
         await loadUserData(session.user);
-        console.log("loadUserData finished");
       } catch (e) {
         console.error("loadUserData failed:", e);
         showPage("loginPage");
       }
     } else {
-      console.log("User NOT logged in — showing signup");
       showPage("signupPage");
     }
-  
-    console.log("Bootstrap COMPLETE");
   }
   bootstrap();
   </script>
