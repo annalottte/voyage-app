@@ -688,6 +688,16 @@ async function deleteLink(index) {
 
 async function saveMemory(event) {
     event.preventDefault();
+
+    // Resolve trip — may come from picker if opened from homepage
+    if (!currentMemoryTrip) {
+        const picker = document.getElementById('addMemoryTripPicker');
+        const tripId = picker?.value;
+        if (!tripId) { alert('Please select a trip.'); return; }
+        const trip = (pastTrips || []).find(t => t.id === tripId);
+        if (!trip) { alert('Trip not found.'); return; }
+        window.currentMemoryTrip = trip;
+    }
     
     const date = document.getElementById('memoryDate').value;
     const title = document.getElementById('memoryTitle').value;
