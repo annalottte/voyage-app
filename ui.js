@@ -245,28 +245,31 @@ function openAddMemoryModal(tripId) {
   const pickerGroup = document.getElementById('addMemoryTripPickerGroup');
   const picker = document.getElementById('addMemoryTripPicker');
   const label = document.getElementById('addMemoryTripLabel');
+  const freehandGroup = document.getElementById('addMemoryFreehandGroup');
 
   if (window.currentMemoryTrip) {
-    // Trip already known — hide picker, show label
+    // Trip already known — hide picker & freehand, show label
     if (pickerGroup) pickerGroup.style.display = 'none';
+    if (freehandGroup) freehandGroup.style.display = 'none';
     if (label) label.textContent = `Adding to: ${currentMemoryTrip.destination}`;
   } else {
-    // No trip context — need to pick one
-    if (!pastTrips?.length) {
-      alert('Archive a completed trip first before adding memories!');
-      return;
-    }
-    // Populate picker
+    // Show trip picker (existing trips) + freehand option
     if (picker) {
-      picker.innerHTML = '<option value="">Select a trip…</option>';
+      picker.innerHTML = '<option value="">— Choose an existing trip —</option>';
       (pastTrips || []).forEach(t => {
         const opt = document.createElement('option');
         opt.value = t.id;
         opt.textContent = t.destination;
         picker.appendChild(opt);
       });
+      // Add a "new destination" option at the bottom
+      const newOpt = document.createElement('option');
+      newOpt.value = '__new__';
+      newOpt.textContent = '✏️ Enter a new destination…';
+      picker.appendChild(newOpt);
     }
     if (pickerGroup) pickerGroup.style.display = 'block';
+    if (freehandGroup) freehandGroup.style.display = 'none';
     if (label) label.textContent = '';
   }
 
@@ -279,6 +282,16 @@ function openAddMemoryModal(tripId) {
   const start = currentMemoryTrip?.start_date || currentMemoryTrip?.startDate;
   const dateInput = document.getElementById('memoryDate');
   if (dateInput && start) dateInput.value = start;
+}
+
+function handleMemoryTripPickerChange(value) {
+  const freehandGroup = document.getElementById('addMemoryFreehandGroup');
+  if (value === '__new__') {
+    if (freehandGroup) freehandGroup.style.display = 'block';
+    document.getElementById('addMemoryDestination')?.focus();
+  } else {
+    if (freehandGroup) freehandGroup.style.display = 'none';
+  }
 }
 
 async function handleMemoryPhotosUpload(event) {
@@ -990,18 +1003,47 @@ async function fetchWeatherForDay(destination, dateStr) {
 // SCRATCH MAP
 // ===========================
 
-let visitedCountries = new Set();
+// Rich travel-inspired palette — enough colours to feel varied
+const SCRATCH_PALETTE = [
+  '#d97757','#5b9aa9','#e8a838','#7db87a','#c17ab8',
+  '#e06b7a','#5b8dd9','#d4a853','#6bbfb0','#b87a5b',
+  '#9b7dd4','#7ab8d4','#d4745b','#5ba87a','#d45b8d',
+  '#8db85b','#5b7ab8','#d4b85b','#b85b7a','#5bd4c4',
+];
+
+// name → colour index, persisted alongside visited set
+let visitedCountries = new Map(); // name → colorIndex
 let scratchMapReady = false;
+let scratchColorCounter = 0;
+
+function getNextScratchColor() {
+  const idx = scratchColorCounter % SCRATCH_PALETTE.length;
+  scratchColorCounter++;
+  return idx;
+}
 
 async function initScratchMap() {
   const container = document.getElementById('scratchMapInner');
   if (!container || scratchMapReady) return;
 
   // Always start fresh, then restore from localStorage
-  visitedCountries = new Set();
+  visitedCountries = new Map();
+  scratchColorCounter = 0;
   const saved = localStorage.getItem(`voyage_scratch_${currentUser?.id}`);
   if (saved) {
-    try { visitedCountries = new Set(JSON.parse(saved)); } catch(e) {}
+    try {
+      const parsed = JSON.parse(saved);
+      // Support both old Set format (array of strings) and new Map format (array of [name, idx])
+      if (Array.isArray(parsed) && parsed.length && Array.isArray(parsed[0])) {
+        visitedCountries = new Map(parsed);
+        scratchColorCounter = visitedCountries.size;
+      } else if (Array.isArray(parsed)) {
+        // Migrate old format
+        parsed.forEach(name => {
+          visitedCountries.set(name, getNextScratchColor());
+        });
+      }
+    } catch(e) {}
   }
 
   try {
@@ -1054,23 +1096,38 @@ async function initScratchMap() {
     svg.selectAll('.scratch-country')
       .data(countries.features)
       .enter().append('path')
-      .attr('class', d => {
+      .attr('class', 'scratch-country')
+      .attr('fill', d => {
         const name = (countryNames[d.id] || '').toLowerCase();
-        const isVisited = visitedCountries.has(name);
-        return 'scratch-country' + (isVisited ? ' visited' : '');
+        const colorIdx = visitedCountries.get(name);
+        return colorIdx !== undefined ? SCRATCH_PALETTE[colorIdx % SCRATCH_PALETTE.length] : '#ddd6ce';
       })
       .attr('d', path)
       .attr('data-name', d => countryNames[d.id] || d.id)
+      .on('mouseover', function() {
+        const fill = d3.select(this).attr('fill');
+        if (fill === '#ddd6ce') d3.select(this).attr('fill', '#c8bfb7');
+      })
+      .on('mouseout', function(event, d) {
+        const name = (countryNames[d.id] || '').toLowerCase();
+        const colorIdx = visitedCountries.get(name);
+        d3.select(this).attr('fill',
+          colorIdx !== undefined ? SCRATCH_PALETTE[colorIdx % SCRATCH_PALETTE.length] : '#ddd6ce'
+        );
+      })
       .on('click', function(event, d) {
         const name = (countryNames[d.id] || '').toLowerCase();
         if (!name) return;
-        const el = d3.select(this);
-        if (el.classed('visited')) {
-          el.classed('visited', false);
+        if (visitedCountries.has(name)) {
           visitedCountries.delete(name);
+          d3.select(this).attr('fill', '#ddd6ce');
         } else {
-          el.classed('visited', true);
-          visitedCountries.add(name);
+          const colorIdx = getNextScratchColor();
+          visitedCountries.set(name, colorIdx);
+          d3.select(this)
+            .attr('fill', SCRATCH_PALETTE[colorIdx % SCRATCH_PALETTE.length])
+            .attr('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.25))');
+          setTimeout(() => d3.select(this).attr('filter', null), 600);
         }
         saveScratchMap();
         updateScratchMapStats();
@@ -1089,7 +1146,7 @@ async function initScratchMap() {
 
 function saveScratchMap() {
   if (currentUser?.id) {
-    localStorage.setItem(`voyage_scratch_${currentUser.id}`, JSON.stringify([...visitedCountries]));
+    localStorage.setItem(`voyage_scratch_${currentUser.id}`, JSON.stringify([...visitedCountries.entries()]));
   }
 }
 
