@@ -849,6 +849,9 @@
     } catch {
       _packingList = {}; _outfitPlan = {}; _savedTemplates = [];
     }
+    // Keep window reference in sync — _loadState reassigns the closure variable
+    // to a new object, so any stale window._packingList must be updated here.
+    window._packingList = _packingList;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -999,9 +1002,14 @@
     window._ppLoadTemplate = (tplId) => _loadTemplate(tplId, main);
     window._ppSaveTemplate = () => _saveAsTemplate(main);
 
-    // Wire generate button
+    // Wire generate button — remove any stale listener before attaching to avoid
+    // duplicate calls if _renderPackingTab is called multiple times.
     const genBtn = document.getElementById('pp-ai-gen');
-    if (genBtn) genBtn.addEventListener('click', () => _generatePackingList(main));
+    if (genBtn) {
+      const fresh = genBtn.cloneNode(true);
+      genBtn.parentNode.replaceChild(fresh, genBtn);
+      fresh.addEventListener('click', () => _generatePackingList(main));
+    }
   }
 
   function _aiBoxHTML() {
