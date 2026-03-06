@@ -79,136 +79,496 @@
             display: block;
         }
 
-        /* Homepage Styles */
+        /* =============================================
+           HOMEPAGE — redesigned
+           ============================================= */
+
         .homepage {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 48px 32px;
+            padding: 0 0 120px; /* bottom pad for mobile nav */
         }
 
-        .homepage-header {
-            margin-bottom: 48px;
+        /* ── Top nav bar ── */
+        .hp-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 28px 0;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: var(--bg-primary);
         }
 
-        .homepage-title {
+        .hp-logo {
             font-family: 'Fraunces', serif;
-            font-size: 48px;
+            font-size: 28px;
             font-weight: 600;
             font-style: italic;
             color: var(--accent-warm);
-            margin-bottom: 12px;
-            letter-spacing: -1px;
+            letter-spacing: -0.5px;
         }
 
-        .homepage-subtitle {
-            font-size: 18px;
-            color: var(--text-secondary);
-        }
-
-        .trips-section {
-            margin-bottom: 64px;
-        }
-
-        .section-header {
+        .hp-topbar-actions {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
+            gap: 8px;
         }
 
-        .section-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .create-trip-btn {
-            padding: 12px 24px;
-            background: var(--text-primary);
-            color: var(--bg-secondary);
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
+        .hp-icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border-medium);
+            background: var(--bg-secondary);
+            font-size: 16px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .hp-icon-btn:hover { background: var(--bg-hover); transform: scale(1.05); }
+        .hp-icon-btn .badge {
+            position: absolute;
+            top: -3px; right: -3px;
+            width: 10px; height: 10px;
+            background: var(--accent-warm);
+            border-radius: 50%;
+            border: 2px solid var(--bg-primary);
         }
 
-        .create-trip-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+        /* ── Hero section: next upcoming trip ── */
+        .hp-hero {
+            margin: 20px 24px 0;
+            border-radius: 24px;
+            overflow: hidden;
+            position: relative;
+            min-height: 260px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #2d1f14 0%, #4a2c1a 100%);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .hp-hero:hover { transform: translateY(-3px); box-shadow: 0 20px 48px rgba(26,24,22,0.18); }
+
+        .hp-hero-image {
+            position: absolute;
+            inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: 0.55;
         }
 
-        .trips-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 24px;
+        .hp-hero-placeholder {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #d97757 0%, #5b9aa9 60%, #2d1f14 100%);
+            opacity: 0.8;
         }
+
+        /* Decorative dots on placeholder */
+        .hp-hero-placeholder::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+            background-size: 28px 28px;
+        }
+
+        .hp-hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(26,18,10,0.85) 0%, rgba(26,18,10,0.1) 60%);
+        }
+
+        .hp-hero-content {
+            position: relative;
+            z-index: 2;
+            padding: 28px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            min-height: 260px;
+        }
+
+        .hp-hero-eyebrow {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 8px;
+        }
+
+        .hp-hero-title {
+            font-family: 'Fraunces', serif;
+            font-size: 34px;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: -0.5px;
+            line-height: 1.15;
+            margin-bottom: 10px;
+        }
+
+        .hp-hero-meta {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .hp-hero-dates {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .hp-countdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-warm);
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.02em;
+        }
+
+        .hp-countdown.ongoing {
+            background: #4caf50;
+        }
+
+        .hp-hero-open-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .hp-hero-open-btn:hover { background: rgba(255,255,255,0.3); }
+
+        /* ── Hero empty state ── */
+        .hp-hero-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 200px;
+            padding: 32px;
+            gap: 12px;
+        }
+        .hp-hero-empty-icon { font-size: 48px; opacity: 0.5; }
+        .hp-hero-empty-text { font-size: 16px; color: rgba(255,255,255,0.7); }
+        .hp-hero-empty-btn {
+            margin-top: 8px;
+            padding: 12px 28px;
+            background: var(--accent-warm);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .hp-hero-empty-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(217,119,87,0.35); }
+
+        /* ── Section headers ── */
+        .hp-section {
+            padding: 32px 24px 0;
+        }
+
+        .hp-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .hp-section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        .hp-section-action {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-warm);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 0;
+            transition: opacity 0.2s;
+        }
+        .hp-section-action:hover { opacity: 0.7; }
+
+        /* ── Trip cards — horizontal scroll on mobile, grid on desktop ── */
+        .trips-scroll {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 8px;
+            /* hide scrollbar */
+            scrollbar-width: none;
+        }
+        .trips-scroll::-webkit-scrollbar { display: none; }
 
         .trip-card {
             background: var(--bg-secondary);
             border: 1px solid var(--border-light);
-            border-radius: 16px;
+            border-radius: 20px;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.3s ease;
-            animation: fadeInUp 0.4s ease;
+            transition: all 0.25s ease;
+            animation: fadeInUp 0.4s ease both;
+            flex: 0 0 280px;
+            scroll-snap-align: start;
+            position: relative;
         }
 
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         .trip-card:hover {
             transform: translateY(-4px);
             box-shadow: var(--shadow-lg);
-            border-color: var(--accent-warm);
+            border-color: rgba(217,119,87,0.4);
         }
 
         .trip-card-image {
             width: 100%;
-            height: 200px;
+            height: 160px;
             object-fit: cover;
-            background: linear-gradient(135deg, var(--accent-warm-light), var(--accent-sky-light));
+        }
+
+        .trip-card-image-placeholder {
+            width: 100%;
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
         }
 
         .trip-card-content {
-            padding: 24px;
+            padding: 16px 18px 18px;
+        }
+
+        .trip-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 6px;
         }
 
         .trip-card-title {
-            font-size: 20px;
-            font-weight: 600;
+            font-size: 16px;
+            font-weight: 700;
             color: var(--text-primary);
-            margin-bottom: 8px;
+            line-height: 1.3;
+            flex: 1;
         }
 
+        /* ── Countdown badge on card ── */
+        .trip-card-countdown {
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+        .trip-card-countdown.future  { background: #fef3ee; color: var(--accent-warm); }
+        .trip-card-countdown.ongoing { background: #edf7ed; color: #2e7d32; }
+        .trip-card-countdown.past    { background: var(--bg-primary); color: var(--text-tertiary); }
+
         .trip-card-dates {
-            font-size: 14px;
+            font-size: 12px;
             color: var(--text-secondary);
             margin-bottom: 12px;
         }
 
-        .trip-card-stats {
+        .trip-card-footer {
             display: flex;
-            gap: 16px;
-            font-size: 13px;
-            color: var(--text-tertiary);
+            align-items: center;
+            justify-content: space-between;
             padding-top: 12px;
             border-top: 1px solid var(--border-light);
+        }
+
+        .trip-card-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-tertiary);
         }
 
         .trip-card-stat {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
+        }
+
+        /* ── Three-dot menu on cards ── */
+        .trip-card-menu-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: none;
+            background: var(--bg-primary);
+            color: var(--text-tertiary);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .trip-card-menu-btn:hover { background: var(--border-light); color: var(--text-primary); }
+
+        /* Dropdown menu */
+        .trip-card-dropdown {
+            position: absolute;
+            top: 0; right: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            z-index: 200;
+            min-width: 180px;
+            overflow: hidden;
+            animation: fadeInUp 0.15s ease;
+        }
+
+        .trip-card-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            color: var(--text-primary);
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.15s;
+            font-family: inherit;
+        }
+        .trip-card-dropdown-item:hover { background: var(--bg-hover); }
+        .trip-card-dropdown-item.danger { color: #c0392b; }
+        .trip-card-dropdown-item.danger:hover { background: #fde8e0; }
+
+        /* ── Progress bar (for ongoing trips) ── */
+        .trip-progress-bar {
+            height: 3px;
+            background: var(--border-light);
+            border-radius: 2px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .trip-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-warm), #e8a838);
+            border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+
+        /* ── Empty state for trips section ── */
+        .hp-empty {
+            text-align: center;
+            padding: 40px 24px;
+            color: var(--text-tertiary);
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px dashed var(--border-medium);
+        }
+        .hp-empty-icon { font-size: 36px; margin-bottom: 8px; opacity: 0.5; }
+        .hp-empty-text { font-size: 14px; }
+
+        /* ── Bottom nav bar (mobile) ── */
+        .hp-bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            z-index: 300;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .hp-bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 4px 8px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            gap: 3px;
+            transition: all 0.15s;
+            position: relative;
+        }
+        .hp-bottom-nav-item:hover { background: var(--bg-hover); }
+        .hp-bottom-nav-item.active .bnav-icon { color: var(--accent-warm); }
+        .hp-bottom-nav-item.active .bnav-label { color: var(--accent-warm); font-weight: 600; }
+
+        .bnav-icon { font-size: 20px; }
+        .bnav-label { font-size: 10px; color: var(--text-tertiary); font-weight: 500; }
+        .bnav-dot {
+            position: absolute;
+            top: 8px; right: calc(50% - 14px);
+            width: 7px; height: 7px;
+            background: var(--accent-warm);
+            border-radius: 50%;
+            border: 2px solid var(--bg-secondary);
+        }
+
+        /* ── Responsive: wider layout on desktop ── */
+        @media (min-width: 768px) {
+            .homepage { padding-bottom: 48px; }
+            .hp-hero { margin: 24px 32px 0; min-height: 320px; }
+            .hp-hero-title { font-size: 42px; }
+            .hp-section { padding: 40px 32px 0; }
+            .trips-scroll {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                overflow-x: visible;
+                scroll-snap-type: none;
+            }
+            .trip-card { flex: none; }
+            .hp-bottom-nav { display: none; }
+            /* On desktop, keep the floating buttons */
+        }
+
+        @media (max-width: 767px) {
+            /* Hide old fixed buttons on mobile — replaced by bottom nav */
+            .settings-btn, .friends-nav-btn { display: none; }
         }
 
         /* Memory Journal Page */
@@ -837,198 +1197,263 @@
             max-width: 600px;
         }
 
+        /* =============================================
+           CALENDAR PAGE — mobile-first redesign
+           ============================================= */
+
         .app-container {
-            display: grid;
-            grid-template-columns: 280px 1fr 360px;
+            display: flex;
+            flex-direction: column;
             min-height: 100vh;
-            gap: 1px;
-            background: var(--border-light);
         }
 
-        /* Back button */
-        .back-btn {
-            display: inline-flex;
+        /* ── Calendar top bar ── */
+        .cal-topbar {
+            display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: transparent;
-            border: 1px solid var(--border-medium);
-            border-radius: 8px;
-            font-size: 14px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-bottom: 24px;
-        }
-
-        .back-btn:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-
-        /* Sidebar */
-        .sidebar {
+            gap: 12px;
+            padding: 16px 20px 0;
             background: var(--bg-secondary);
-            padding: 24px;
-            overflow-y: auto;
-            border-right: 1px solid var(--border-light);
         }
 
-        .logo {
-            font-family: 'Fraunces', serif;
-            font-size: 28px;
-            font-weight: 600;
-            font-style: italic;
-            color: var(--accent-warm);
-            margin-bottom: 32px;
-            letter-spacing: -0.5px;
-        }
-
-        .nav-section {
-            margin-bottom: 32px;
-        }
-
-        .nav-title {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--text-tertiary);
-            margin-bottom: 12px;
-        }
-
-        .trip-list {
-            list-style: none;
-        }
-
-        .trip-item {
-            padding: 10px 12px;
-            border-radius: 8px;
+        .cal-back-btn {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--border-medium);
+            background: transparent;
             cursor: pointer;
-            transition: all 0.2s ease;
-            margin-bottom: 4px;
-            border: 1px solid transparent;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            flex-shrink: 0;
         }
+        .cal-back-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 
-        .trip-item:hover {
-            background: var(--bg-hover);
-            border-color: var(--border-light);
-        }
+        .cal-topbar-info { flex: 1; min-width: 0; }
 
-        .trip-item.active {
-            background: var(--accent-warm-light);
-            border-color: var(--accent-warm);
-        }
-
-        .trip-name {
-            font-size: 14px;
-            font-weight: 500;
+        .cal-trip-name {
+            font-family: 'Fraunces', serif;
+            font-size: 20px;
+            font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: -0.3px;
         }
 
-        .trip-dates {
+        .cal-trip-meta {
             font-size: 12px;
             color: var(--text-secondary);
+            margin-top: 1px;
         }
 
-        .new-trip-btn {
+        /* Countdown chip in topbar */
+        .cal-countdown-chip {
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 10px;
+            border-radius: 10px;
+            background: #fef3ee;
+            color: var(--accent-warm);
+        }
+        .cal-countdown-chip.ongoing { background: #edf7ed; color: #2e7d32; }
+
+        /* ── Header image (full-bleed under topbar) ── */
+        .calendar-header-image {
             width: 100%;
-            padding: 12px 16px;
-            background: var(--text-primary);
-            color: var(--bg-secondary);
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            height: 160px;
+            object-fit: cover;
+            display: block;
             margin-top: 16px;
         }
 
-        .new-trip-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-        }
-
-        /* Calendar Main */
-        .calendar-main {
-            background: var(--bg-secondary);
-            padding: 32px;
-            overflow-y: auto;
-        }
-
-        .calendar-header-image {
-            width: calc(100% + 64px);
-            height: 240px;
-            margin: -32px -32px 32px -32px;
-            object-fit: cover;
-            border-radius: 0;
-        }
-
-        .calendar-header {
+        /* ── Month navigation strip ── */
+        .cal-month-bar {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 32px;
-            padding-bottom: 24px;
+            justify-content: space-between;
+            padding: 16px 20px 8px;
+            background: var(--bg-secondary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
             border-bottom: 1px solid var(--border-light);
         }
 
-        .calendar-title {
-            font-family: 'Fraunces', serif;
-            font-size: 32px;
-            font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: -0.5px;
-        }
-
-        .month-nav {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
         .month-label {
-            font-size: 18px;
-            font-weight: 500;
-            min-width: 160px;
-            text-align: center;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
         }
+
+        .month-nav { display: flex; gap: 8px; align-items: center; }
 
         .nav-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
+            width: 34px; height: 34px;
+            border-radius: 10px;
             border: 1px solid var(--border-medium);
             background: var(--bg-secondary);
             cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
         }
+        .nav-btn:hover { background: var(--bg-hover); }
 
-        .nav-btn:hover {
-            background: var(--bg-hover);
-            border-color: var(--text-tertiary);
+        /* ── Calendar grid ── */
+        .calendar-main {
+            background: var(--bg-secondary);
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 0 200px; /* space for slide-up sheet */
         }
 
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
+            gap: 4px;
+            padding: 8px 12px 16px;
         }
 
         .weekday {
             text-align: center;
-            font-size: 11px;
-            font-weight: 600;
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.6px;
             color: var(--text-tertiary);
-            padding: 12px 0;
+            padding: 10px 0 6px;
+        }
+
+        /* ── Sidebar hidden on mobile, shown on desktop ── */
+        .sidebar { display: none; }
+        .details-panel { display: none; }
+
+        /* ── Slide-up day detail sheet ── */
+        .day-detail-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(26, 24, 22, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.2s ease;
+        }
+        .day-detail-overlay.active { display: flex; }
+
+        .day-detail-panel {
+            background: var(--bg-secondary);
+            border-radius: 24px 24px 0 0;
+            width: 100%;
+            max-width: 680px;
+            max-height: 92vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUpSheet 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+
+        @keyframes slideUpSheet {
+            from { transform: translateY(100%); }
+            to   { transform: translateY(0); }
+        }
+
+        /* Drag handle */
+        .day-detail-panel::before {
+            content: '';
+            display: block;
+            width: 36px; height: 4px;
+            background: var(--border-medium);
+            border-radius: 2px;
+            margin: 12px auto 0;
+            flex-shrink: 0;
+        }
+
+        /* Desktop: centered modal instead of sheet */
+        @media (min-width: 768px) {
+            .day-detail-overlay { align-items: center; padding: 24px; }
+            .day-detail-panel {
+                border-radius: 20px;
+                max-height: 88vh;
+                animation: slideUp 0.25s ease;
+            }
+            .day-detail-panel::before { display: none; }
+        }
+
+        .day-detail-header {
+            padding: 16px 24px 16px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-shrink: 0;
+        }
+
+        .day-detail-title-section { flex: 1; }
+
+        .day-detail-date {
+            font-family: 'Fraunces', serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        .day-detail-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .close-detail-btn {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--border-medium);
+            background: transparent;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            color: var(--text-tertiary);
+            transition: all 0.2s;
+        }
+        .close-detail-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+        .day-detail-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px 32px;
+        }
+
+        /* Desktop: show sidebar with trip info */
+        @media (min-width: 900px) {
+            .app-container {
+                display: grid;
+                grid-template-columns: 260px 1fr;
+                grid-template-rows: 1fr;
+            }
+            .sidebar {
+                display: flex;
+                flex-direction: column;
+                background: var(--bg-secondary);
+                border-right: 1px solid var(--border-light);
+                padding: 28px 20px;
+                overflow-y: auto;
+            }
+            .logo {
+                font-family: 'Fraunces', serif;
+                font-size: 24px;
+                font-weight: 600;
+                font-style: italic;
+                color: var(--accent-warm);
+                margin-bottom: 24px;
+            }
+            .calendar-main { padding-bottom: 40px; }
         }
 
         .day-cell {
@@ -2353,40 +2778,59 @@
 
     <!-- Homepage -->
     <div id="homepage" class="page">
+
+        <!-- Desktop-only floating buttons (hidden on mobile via CSS) -->
         <button class="friends-nav-btn" id="friendsNavBtn" onclick="openFriendsPage()">👥 Friends</button>
         <button class="settings-btn" onclick="openSettingsModal()">⚙️ Settings</button>
+
         <div class="homepage">
-            <div class="homepage-header">
-                <h1 class="homepage-title">Voyage</h1>
-                <p class="homepage-subtitle" id="welcomeMessage">Plan your adventures, one day at a time</p>
+
+            <!-- Top bar -->
+            <div class="hp-topbar">
+                <div class="hp-logo">Voyage</div>
+                <div class="hp-topbar-actions">
+                    <button class="hp-icon-btn" onclick="openFriendsPage()" title="Friends">
+                        👥
+                        <span class="badge" id="friendsBadge" style="display:none"></span>
+                    </button>
+                    <button class="hp-icon-btn" onclick="openSettingsModal()" title="Settings">⚙️</button>
+                </div>
             </div>
 
-            <div class="trips-section">
-                <div class="section-header">
-                    <h2 class="section-title">Your Trips</h2>
-                    <button class="create-trip-btn" onclick="openCreateTripModal()">+ Create Trip</button>
+            <!-- Hero: next/current trip -->
+            <div id="hpHero" class="hp-hero">
+                <div class="hp-hero-empty" style="position:relative;z-index:2;">
+                    <div class="hp-hero-empty-icon">✈️</div>
+                    <div class="hp-hero-empty-text">No upcoming trips yet</div>
+                    <button class="hp-hero-empty-btn" onclick="openCreateTripModal()">+ Plan a Trip</button>
                 </div>
-                <div class="trips-grid" id="tripsGrid">
-                    <!-- Trip cards will be generated here -->
-                </div>
+                <div class="hp-hero-placeholder"></div>
+                <div class="hp-hero-overlay"></div>
             </div>
 
-            <div class="trips-section">
-                <div class="section-header">
-                    <h2 class="section-title">Memory Lane</h2>
-                    <button class="create-trip-btn" onclick="openAddMemoryModal()" style="background: var(--accent-warm);">+ Add Memory</button>
+            <!-- Upcoming trips -->
+            <div class="hp-section">
+                <div class="hp-section-header">
+                    <div class="hp-section-title">Your Trips</div>
+                    <button class="hp-section-action" onclick="openCreateTripModal()">+ New</button>
                 </div>
-                <p style="font-size: 14px; color: var(--text-secondary); margin-top: -16px; margin-bottom: 20px;">Relive your adventures</p>
-                <div class="trips-grid" id="pastTripsGrid">
-                    <!-- Past trip cards will be generated here -->
+                <div class="trips-scroll" id="tripsGrid"></div>
+            </div>
+
+            <!-- Memory Lane -->
+            <div class="hp-section">
+                <div class="hp-section-header">
+                    <div class="hp-section-title">Memory Lane</div>
+                    <button class="hp-section-action" onclick="openAddMemoryModal()">+ Add</button>
                 </div>
+                <div class="trips-scroll" id="pastTripsGrid"></div>
             </div>
 
             <!-- Scratch Map -->
-            <div class="trips-section">
-                <div class="section-header">
-                    <h2 class="section-title">🗺️ Your World</h2>
-                    <p style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;" id="scratchMapStats">Scratch off the countries you've visited</p>
+            <div class="hp-section">
+                <div class="hp-section-header">
+                    <div class="hp-section-title">🗺️ Your World</div>
+                    <span style="font-size:12px;color:var(--text-tertiary)" id="scratchMapStats">Tap to mark visited</span>
                 </div>
                 <div class="scratch-map-container">
                     <div id="scratchMapInner"></div>
@@ -2396,44 +2840,78 @@
                     </div>
                 </div>
             </div>
+
         </div>
+
+        <!-- Mobile bottom nav -->
+        <nav class="hp-bottom-nav">
+            <button class="hp-bottom-nav-item active" onclick="">
+                <span class="bnav-icon">🏠</span>
+                <span class="bnav-label">Home</span>
+            </button>
+            <button class="hp-bottom-nav-item" onclick="openCreateTripModal()">
+                <span class="bnav-icon">✈️</span>
+                <span class="bnav-label">New Trip</span>
+            </button>
+            <button class="hp-bottom-nav-item" onclick="openAddMemoryModal()">
+                <span class="bnav-icon">📸</span>
+                <span class="bnav-label">Memory</span>
+            </button>
+            <button class="hp-bottom-nav-item" onclick="openFriendsPage()">
+                <span class="bnav-icon">👥</span>
+                <span class="bnav-label">Friends</span>
+                <span class="bnav-dot" id="friendsBadgeMobile" style="display:none"></span>
+            </button>
+            <button class="hp-bottom-nav-item" onclick="openSettingsModal()">
+                <span class="bnav-icon">⚙️</span>
+                <span class="bnav-label">Settings</span>
+            </button>
+        </nav>
     </div>
 
     <!-- Calendar Page -->
     <div id="calendarPage" class="page">
         <div class="app-container">
-            <!-- Sidebar -->
+
+            <!-- Sidebar (desktop only, shown via CSS) -->
             <div class="sidebar">
                 <div class="logo">Voyage</div>
-                
-                <button class="back-btn" onclick="goToHomepage()">← Back to Trips</button>
-                
-                <div class="nav-section">
-                    <div class="nav-title" id="sidebarTripTitle">Trip Details</div>
-                    <div id="tripInfo" style="padding: 12px; background: var(--bg-primary); border-radius: 8px; margin-top: 12px;">
-                        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Destination</div>
-                        <div id="tripDestinationText" style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">Loading...</div>
-                        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Dates</div>
-                        <div id="tripDates" style="font-size: 14px; font-weight: 500;">Loading...</div>
-                    </div>
+                <button class="cal-back-btn" onclick="goToHomepage()" style="width:auto;padding:8px 14px;border-radius:8px;gap:6px;font-size:13px;margin-bottom:20px;">← Home</button>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-tertiary);margin-bottom:12px;">Trip Details</div>
+                <div id="tripInfo" style="padding:14px;background:var(--bg-primary);border-radius:10px;">
+                    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:2px;">Destination</div>
+                    <div id="tripDestinationText" style="font-size:15px;font-weight:600;margin-bottom:12px;">—</div>
+                    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:2px;">Dates</div>
+                    <div id="tripDates" style="font-size:14px;font-weight:500;color:var(--text-primary);">—</div>
                 </div>
             </div>
 
-            <!-- Calendar Main -->
+            <!-- Calendar main -->
             <div class="calendar-main">
-                <button class="back-btn" onclick="goToHomepage()" style="margin-bottom: 24px;">← Back to Home</button>
-                
-                <img id="calendarHeaderImage" class="calendar-header-image" style="display: none;" alt="Trip header">
-                
-                <div class="calendar-header">
-                    <h1 class="calendar-title" id="calendarTripTitle">Trip Calendar</h1>
+
+                <!-- Mobile top bar -->
+                <div class="cal-topbar">
+                    <button class="cal-back-btn" onclick="goToHomepage()">←</button>
+                    <div class="cal-topbar-info">
+                        <div class="cal-trip-name" id="calendarTripTitle">Trip Calendar</div>
+                        <div class="cal-trip-meta" id="calendarTripMeta"></div>
+                    </div>
+                    <div class="cal-countdown-chip" id="calCountdownChip" style="display:none"></div>
+                </div>
+
+                <!-- Optional header image -->
+                <img id="calendarHeaderImage" class="calendar-header-image" style="display:none;" alt="Trip header">
+
+                <!-- Month nav -->
+                <div class="cal-month-bar">
+                    <span class="month-label" id="currentMonth">March 2025</span>
                     <div class="month-nav">
                         <button class="nav-btn" onclick="previousMonth()">‹</button>
-                        <span class="month-label" id="currentMonth">March 2025</span>
                         <button class="nav-btn" onclick="nextMonth()">›</button>
                     </div>
                 </div>
 
+                <!-- Calendar grid -->
                 <div class="calendar-grid" id="calendarGrid">
                     <div class="weekday">Sun</div>
                     <div class="weekday">Mon</div>
@@ -2445,21 +2923,6 @@
                 </div>
             </div>
 
-            <!-- Details Panel -->
-            <div class="details-panel" id="detailsPanel">
-                <div class="details-header">
-                    <div class="selected-date" id="selectedDate">Select a day</div>
-                    <div class="date-subtitle">Click any day to view details</div>
-                </div>
-
-                <button class="add-activity-btn" onclick="openDayDetail()">View Day Details</button>
-
-                <div class="activities-list" id="activitiesList">
-                    <div style="text-align: center; padding: 32px; color: var(--text-tertiary);">
-                        Select a day to start planning
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
