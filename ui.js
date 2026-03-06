@@ -267,8 +267,52 @@ function toggleCardMenu(event, tripId, isPast) {
     </button>`
   ).join('');
 
-  card.style.position = 'relative';
-  card.appendChild(menu);
+  function toggleCardMenu(event, tripId, isPast) {
+  event.stopPropagation();
+  document.querySelectorAll('.trip-card-dropdown').forEach(d => d.remove());
+
+  const btn = event.currentTarget;
+  const btnRect = btn.getBoundingClientRect();
+
+  const menu = document.createElement('div');
+  menu.className = 'trip-card-dropdown';
+  menu.style.cssText = `
+    position: fixed;
+    z-index: 9999;
+    top: ${btnRect.bottom + 4}px;
+    left: ${btnRect.right - 180}px;
+    min-width: 180px;
+  `;
+
+  const items = isPast ? [
+    { icon: '📖', label: 'Open Journal',  fn: `openMemoryJournal('${tripId}')` },
+    { icon: '📸', label: 'Add Memory',    fn: `openAddMemoryModal('${tripId}')` },
+  ] : [
+    { icon: '✈️', label: 'Open Calendar', fn: `(typeof openTrip==='function')&&openTrip('${tripId}')` },
+    { icon: '👥', label: 'Share & Collab', fn: `openCollaboratorsModal('${tripId}')` },
+    { icon: '📦', label: 'Archive Trip',  fn: `archiveTrip('${tripId}')` },
+    { icon: '🗑️', label: 'Delete Trip',   fn: `deleteTrip('${tripId}')`, danger: true },
+  ];
+
+  menu.innerHTML = items.map(it =>
+    `<button class="trip-card-dropdown-item${it.danger?' danger':''}" onclick="event.stopPropagation();${it.fn};document.querySelectorAll('.trip-card-dropdown').forEach(d=>d.remove())">
+      ${it.icon} ${it.label}
+    </button>`
+  ).join('');
+
+  document.body.appendChild(menu);
+
+  // Reposition if it goes off the right edge of the screen
+  requestAnimationFrame(() => {
+    const menuRect = menu.getBoundingClientRect();
+    if (menuRect.right > window.innerWidth) {
+      menu.style.left = `${window.innerWidth - menuRect.width - 8}px`;
+    }
+    if (menuRect.bottom > window.innerHeight) {
+      menu.style.top = `${btnRect.top - menuRect.height - 4}px`;
+    }
+  });
+}
 
   const btnRect = btn.getBoundingClientRect();
   const cardRect = card.getBoundingClientRect();
