@@ -1176,6 +1176,7 @@
   // AI PACKING LIST GENERATION
   // ─────────────────────────────────────────────────────────────────────────
   async function _generatePackingList(main) {
+    console.log('🎒 fired, main:', main, 'dest-input:', document.getElementById('pp-dest-input'));
     const dest     = document.getElementById('pp-dest-input')?.value?.trim()  || _tripData.destination || '';
     const nights   = parseInt(document.getElementById('pp-nights-input')?.value) || _calcNights() || 7;
     const style    = document.getElementById('pp-style-input')?.value || 'one checked bag';
