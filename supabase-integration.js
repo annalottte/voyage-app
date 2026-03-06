@@ -9,9 +9,10 @@
   document.getElementById = function (id) {
     const el = _getElementById(id);
     if (el) return el;
-    // Return a harmless stub so .textContent = '...' and .style.display = '...'
-    // never throw, they just silently no-op.
-    return {
+    // Return a harmless stub — all property sets and method calls silently no-op.
+    // _isStub: true lets calling code distinguish this from a real element.
+    const stub = {
+      _isStub: true,
       textContent: '',
       innerHTML: '',
       value: '',
@@ -21,12 +22,13 @@
       getAttribute() { return null; },
       appendChild() {},
       removeChild() {},
+      remove() {},           // ← real no-op, not undefined
       addEventListener() {},
       click() {},
       focus() {},
       reset() {},
-      _isStub: true,
     };
+    return stub;
   };
 })();
 // ──────────────────────────────────────────────────────────────────────────
