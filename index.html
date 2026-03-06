@@ -1219,46 +1219,87 @@
         /* ── Sidebar ── */
         .sidebar {
             background: var(--bg-secondary);
-            padding: 24px;
+            padding: 20px 18px;
             overflow-y: auto;
             border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            gap: 0;
         }
 
         .logo {
             font-family: 'Fraunces', serif;
-            font-size: 28px;
+            font-size: 22px;
             font-weight: 600;
             font-style: italic;
             color: var(--accent-warm);
-            margin-bottom: 32px;
+            margin-bottom: 14px;
             letter-spacing: -0.5px;
         }
 
         .back-btn {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
+            gap: 6px;
+            padding: 7px 12px;
             background: transparent;
             border: 1px solid var(--border-medium);
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
             cursor: pointer;
             transition: all 0.2s ease;
-            margin-bottom: 24px;
+            margin-bottom: 18px;
+            width: 100%;
         }
         .back-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 
-        .nav-section { margin-bottom: 32px; }
+        /* Trip identity block in sidebar */
+        .sidebar-trip-block {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
 
-        .nav-title {
-            font-size: 11px;
+        .sidebar-destination {
+            font-family: 'Fraunces', serif;
+            font-size: 20px;
             font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .sidebar-dates {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .sidebar-countdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: #fef3ee;
+            color: var(--accent-warm);
+        }
+        .sidebar-countdown.ongoing { background: #edf7ed; color: #2e7d32; }
+
+        .nav-section { margin-bottom: 16px; }
+        .nav-title {
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.8px;
             color: var(--text-tertiary);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         /* ── Calendar main: flex column, fills grid cell ── */
@@ -1285,34 +1326,17 @@
 
         .calendar-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
+            gap: 16px;
+            padding: 14px 0 12px;
             border-bottom: 1px solid var(--border-light);
             flex-shrink: 0;
         }
 
-        .calendar-title {
-            font-family: 'Fraunces', serif;
-            font-size: 28px;
-            font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: -0.5px;
-        }
-
-        /* Countdown chip next to title */
-        .cal-countdown-chip {
-            font-size: 12px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 8px;
-            background: #fef3ee;
-            color: var(--accent-warm);
-            margin-left: 12px;
-            vertical-align: middle;
-        }
-        .cal-countdown-chip.ongoing { background: #edf7ed; color: #2e7d32; }
+        /* Title hidden in header — it lives in the sidebar now */
+        .calendar-title { display: none; }
+        .cal-countdown-chip-header { display: none; }
 
         .month-nav {
             display: flex;
@@ -1955,63 +1979,253 @@
             }
         }
 
-        /* Details Panel */
+        /* ── Right panel: Trip Planner ── */
         .details-panel {
-            background: var(--bg-secondary);
-            padding: 32px 24px;
-            overflow-y: auto;
+            background: var(--bg-primary);
             border-left: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        .details-header {
-            margin-bottom: 24px;
+        .details-panel-inner {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 18px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .selected-date {
-            font-size: 24px;
+        /* ── Selected day card ── */
+        .rp-day-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            min-height: 80px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .rp-day-card:hover { border-color: var(--accent-warm); box-shadow: var(--shadow-sm); }
+        .rp-day-card.has-content { border-left: 3px solid var(--accent-warm); }
+
+        .rp-day-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-tertiary);
+            margin-bottom: 6px;
+        }
+
+        .rp-day-date {
+            font-family: 'Fraunces', serif;
+            font-size: 18px;
             font-weight: 600;
             color: var(--text-primary);
+            letter-spacing: -0.3px;
             margin-bottom: 4px;
         }
 
-        .date-subtitle {
-            font-size: 13px;
+        .rp-day-preview {
+            font-size: 12px;
             color: var(--text-secondary);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
-        .add-activity-btn {
+        .rp-day-open-btn {
+            margin-top: 10px;
             width: 100%;
-            padding: 12px 16px;
-            background: transparent;
-            color: var(--accent-warm);
-            border: 2px dashed var(--border-medium);
+            padding: 8px;
+            background: var(--accent-warm);
+            color: white;
+            border: none;
             border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
-            margin-bottom: 24px;
+            transition: all 0.2s;
+        }
+        .rp-day-open-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* ── Trip stats row ── */
+        .rp-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
         }
 
-        .add-activity-btn:hover {
-            border-color: var(--accent-warm);
-            background: var(--accent-warm-light);
+        .rp-stat {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
         }
 
-        .activities-list {
+        .rp-stat-value {
+            font-family: 'Fraunces', serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--accent-warm);
+            line-height: 1;
+            margin-bottom: 3px;
+        }
+
+        .rp-stat-label {
+            font-size: 10px;
+            color: var(--text-tertiary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── Checklist ── */
+        .rp-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .rp-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-tertiary);
+        }
+
+        .rp-add-btn {
+            width: 24px; height: 24px;
+            border-radius: 6px;
+            border: 1px solid var(--border-medium);
+            background: transparent;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            color: var(--text-tertiary);
+            transition: all 0.15s;
+            line-height: 1;
+        }
+        .rp-add-btn:hover { background: var(--accent-warm); border-color: var(--accent-warm); color: white; }
+
+        .rp-checklist {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 4px;
         }
 
-        .activity-card {
-            background: var(--bg-primary);
+        .rp-check-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: var(--bg-secondary);
             border: 1px solid var(--border-light);
-            border-radius: 12px;
-            padding: 16px;
-            transition: all 0.2s ease;
-            animation: slideIn 0.3s ease;
+            border-radius: 8px;
+            transition: all 0.15s;
+            group: true;
         }
+        .rp-check-item:hover { border-color: var(--border-medium); }
+        .rp-check-item.done { opacity: 0.5; }
+
+        .rp-check-box {
+            width: 16px; height: 16px;
+            border-radius: 4px;
+            border: 1.5px solid var(--border-medium);
+            background: transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px;
+            transition: all 0.15s;
+        }
+        .rp-check-item.done .rp-check-box {
+            background: #4caf50;
+            border-color: #4caf50;
+            color: white;
+        }
+        .rp-check-item.done .rp-check-box::after { content: '✓'; }
+
+        .rp-check-text {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text-primary);
+            min-width: 0;
+            cursor: text;
+            outline: none;
+        }
+        .rp-check-text[contenteditable]:focus {
+            color: var(--text-primary);
+        }
+        .rp-check-item.done .rp-check-text {
+            text-decoration: line-through;
+            color: var(--text-tertiary);
+        }
+
+        .rp-check-del {
+            width: 20px; height: 20px;
+            border: none; background: transparent;
+            cursor: pointer;
+            border-radius: 4px;
+            color: var(--text-tertiary);
+            font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0;
+            transition: all 0.15s;
+        }
+        .rp-check-item:hover .rp-check-del { opacity: 1; }
+        .rp-check-del:hover { background: #fde8e0; color: #c0392b; }
+
+        .rp-checklist-empty {
+            text-align: center;
+            padding: 16px;
+            color: var(--text-tertiary);
+            font-size: 12px;
+            background: var(--bg-secondary);
+            border: 1px dashed var(--border-medium);
+            border-radius: 8px;
+        }
+
+        .rp-checklist-input-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .rp-checklist-input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .rp-checklist-input:focus { border-color: var(--accent-warm); }
+
+        .rp-checklist-add {
+            padding: 8px 12px;
+            background: var(--accent-warm);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+        .rp-checklist-add:hover { opacity: 0.9; }
 
         @keyframes slideIn {
             from {
@@ -3237,19 +3451,21 @@
     <div id="calendarPage" class="page">
         <div class="app-container">
 
-            <!-- Sidebar -->
+            <!-- Left Sidebar -->
             <div class="sidebar">
                 <div class="logo">Voyage</div>
                 <button class="back-btn" onclick="goToHomepage()">← Back to Trips</button>
-                <div class="nav-section">
-                    <div class="nav-title" id="sidebarTripTitle">Trip Details</div>
-                    <div id="tripInfo" style="padding:12px;background:var(--bg-primary);border-radius:8px;margin-top:12px;">
-                        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Destination</div>
-                        <div id="tripDestinationText" style="font-size:14px;font-weight:500;margin-bottom:12px;">—</div>
-                        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Dates</div>
-                        <div id="tripDates" style="font-size:14px;font-weight:500;">—</div>
-                    </div>
+
+                <!-- Trip identity block -->
+                <div class="sidebar-trip-block">
+                    <div class="sidebar-destination" id="tripDestinationText">—</div>
+                    <div class="sidebar-dates" id="tripDates">—</div>
+                    <span class="sidebar-countdown" id="calCountdownChip" style="display:none"></span>
                 </div>
+
+                <!-- legacy compat -->
+                <div id="tripInfo" style="display:none;"></div>
+                <div id="sidebarTripTitle" style="display:none;"></div>
             </div>
 
             <!-- Calendar main -->
@@ -3257,17 +3473,9 @@
                 <img id="calendarHeaderImage" class="calendar-header-image" style="display:none;" alt="Trip header">
 
                 <div class="calendar-header">
-                    <div>
-                        <h1 class="calendar-title" id="calendarTripTitle">Trip Calendar</h1>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:16px;">
-                        <span class="cal-countdown-chip" id="calCountdownChip" style="display:none"></span>
-                        <div class="month-nav">
-                            <button class="nav-btn" onclick="previousMonth()">‹</button>
-                            <span class="month-label" id="currentMonth">March 2025</span>
-                            <button class="nav-btn" onclick="nextMonth()">›</button>
-                        </div>
-                    </div>
+                    <button class="nav-btn" onclick="previousMonth()">‹</button>
+                    <span class="month-label" id="currentMonth" style="min-width:130px;text-align:center;font-size:15px;font-weight:700;">March 2025</span>
+                    <button class="nav-btn" onclick="nextMonth()">›</button>
                 </div>
 
                 <div class="calendar-grid" id="calendarGrid">
@@ -3281,17 +3489,71 @@
                 </div>
             </div>
 
-            <!-- Details panel -->
+            <!-- Right Panel: Trip Planner -->
             <div class="details-panel" id="detailsPanel">
-                <div class="details-header">
-                    <div class="selected-date" id="selectedDate">Select a day</div>
-                    <div class="date-subtitle">Click any day to view details</div>
-                </div>
-                <button class="add-activity-btn" onclick="openDayDetail()">View Day Details</button>
-                <div class="activities-list" id="activitiesList">
-                    <div style="text-align:center;padding:32px;color:var(--text-tertiary);">
-                        Select a day to start planning
+                <div class="details-panel-inner">
+
+                    <!-- Selected day card -->
+                    <div>
+                        <div class="rp-section-header">
+                            <div class="rp-section-title">Selected Day</div>
+                        </div>
+                        <div class="rp-day-card" id="rpDayCard" onclick="openDayDetail()">
+                            <div class="rp-day-label" id="rpDayLabel">Click any day to plan it</div>
+                            <div class="rp-day-date" id="rpDayDate" style="color:var(--text-tertiary);font-size:14px;font-style:italic;">No day selected</div>
+                            <div class="rp-day-preview" id="rpDayPreview"></div>
+                            <button class="rp-day-open-btn" id="rpOpenBtn" style="display:none;">Open Day Planner →</button>
+                        </div>
                     </div>
+
+                    <!-- Stats -->
+                    <div>
+                        <div class="rp-section-header">
+                            <div class="rp-section-title">Trip Stats</div>
+                        </div>
+                        <div class="rp-stats">
+                            <div class="rp-stat">
+                                <div class="rp-stat-value" id="rpStatDays">—</div>
+                                <div class="rp-stat-label">Total Days</div>
+                            </div>
+                            <div class="rp-stat">
+                                <div class="rp-stat-value" id="rpStatPlanned">—</div>
+                                <div class="rp-stat-label">Planned</div>
+                            </div>
+                            <div class="rp-stat">
+                                <div class="rp-stat-value" id="rpStatUntil">—</div>
+                                <div class="rp-stat-label">Days Until</div>
+                            </div>
+                            <div class="rp-stat">
+                                <div class="rp-stat-value" id="rpStatPct">—</div>
+                                <div class="rp-stat-label">% Planned</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Checklist -->
+                    <div>
+                        <div class="rp-section-header">
+                            <div class="rp-section-title">Trip Checklist</div>
+                            <button class="rp-add-btn" onclick="rpShowInput()" title="Add item">+</button>
+                        </div>
+                        <div class="rp-checklist" id="rpChecklist"></div>
+                        <div id="rpEmptyChecklist" class="rp-checklist-empty">
+                            Add things to pack, book, or sort ✈️
+                        </div>
+                        <div class="rp-checklist-input-row" id="rpInputRow" style="display:none;">
+                            <input class="rp-checklist-input" id="rpNewItem" placeholder="e.g. Book airport transfer…"
+                                onkeydown="if(event.key==='Enter')rpAddItem();if(event.key==='Escape')rpHideInput();">
+                            <button class="rp-checklist-add" onclick="rpAddItem()">Add</button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- legacy compat stubs -->
+                <div style="display:none;">
+                    <div id="selectedDate"></div>
+                    <div id="activitiesList"></div>
                 </div>
             </div>
 
