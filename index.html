@@ -1198,13 +1198,23 @@
         }
 
         /* =============================================
-           CALENDAR PAGE — mobile-first redesign
+           CALENDAR PAGE — fits entirely on screen
            ============================================= */
+
+        /* Lock the page itself to viewport height — no page scroll */
+        #calendarPage {
+            height: 100vh;
+            overflow: hidden;
+            display: flex !important; /* override .page { display:block } */
+            flex-direction: column;
+        }
 
         .app-container {
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+            flex: 1;
+            min-height: 0; /* critical: lets flex children shrink below content size */
+            overflow: hidden;
         }
 
         /* ── Calendar top bar ── */
@@ -1212,18 +1222,20 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 16px 20px 0;
+            padding: 12px 16px 10px;
             background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-light);
+            flex-shrink: 0;
         }
 
         .cal-back-btn {
-            width: 36px; height: 36px;
-            border-radius: 10px;
+            width: 32px; height: 32px;
+            border-radius: 8px;
             border: 1px solid var(--border-medium);
             background: transparent;
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            font-size: 18px;
+            font-size: 16px;
             color: var(--text-secondary);
             transition: all 0.2s;
             flex-shrink: 0;
@@ -1234,40 +1246,40 @@
 
         .cal-trip-name {
             font-family: 'Fraunces', serif;
-            font-size: 20px;
+            font-size: 17px;
             font-weight: 600;
             color: var(--text-primary);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            letter-spacing: -0.3px;
+            letter-spacing: -0.2px;
+            line-height: 1.2;
         }
 
         .cal-trip-meta {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-secondary);
             margin-top: 1px;
         }
 
-        /* Countdown chip in topbar */
         .cal-countdown-chip {
             flex-shrink: 0;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
-            padding: 5px 10px;
-            border-radius: 10px;
+            padding: 4px 9px;
+            border-radius: 8px;
             background: #fef3ee;
             color: var(--accent-warm);
         }
         .cal-countdown-chip.ongoing { background: #edf7ed; color: #2e7d32; }
 
-        /* ── Header image (full-bleed under topbar) ── */
+        /* ── Header image — compact, optional ── */
         .calendar-header-image {
             width: 100%;
-            height: 160px;
+            height: 90px;
             object-fit: cover;
             display: block;
-            margin-top: 16px;
+            flex-shrink: 0;
         }
 
         /* ── Month navigation strip ── */
@@ -1275,59 +1287,181 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 16px 20px 8px;
+            padding: 8px 14px 6px;
             background: var(--bg-secondary);
-            position: sticky;
-            top: 0;
-            z-index: 10;
             border-bottom: 1px solid var(--border-light);
+            flex-shrink: 0;
         }
 
         .month-label {
-            font-size: 17px;
+            font-size: 14px;
             font-weight: 700;
             color: var(--text-primary);
-            letter-spacing: -0.3px;
+            letter-spacing: -0.2px;
         }
 
-        .month-nav { display: flex; gap: 8px; align-items: center; }
+        .month-nav { display: flex; gap: 6px; align-items: center; }
 
         .nav-btn {
-            width: 34px; height: 34px;
-            border-radius: 10px;
+            width: 28px; height: 28px;
+            border-radius: 7px;
             border: 1px solid var(--border-medium);
             background: var(--bg-secondary);
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            font-size: 16px;
+            font-size: 14px;
             transition: all 0.2s;
         }
         .nav-btn:hover { background: var(--bg-hover); }
 
-        /* ── Calendar grid ── */
+        /* ── Calendar main: fills remaining height, no scroll ── */
         .calendar-main {
             background: var(--bg-secondary);
             flex: 1;
-            overflow-y: auto;
-            padding: 0 0 200px; /* space for slide-up sheet */
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
         }
 
+        /* ── Calendar grid: fills all remaining space ── */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            padding: 8px 12px 16px;
+            grid-template-rows: auto repeat(6, 1fr); /* weekday row + 6 week rows */
+            gap: 3px;
+            padding: 6px 8px 8px;
+            flex: 1;
+            min-height: 0;
         }
 
         .weekday {
             text-align: center;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.6px;
+            letter-spacing: 0.5px;
             color: var(--text-tertiary);
-            padding: 10px 0 6px;
+            padding: 4px 0 3px;
         }
+
+        /* Day cells — NO aspect-ratio, they flex to fill the grid rows */
+        .day-cell {
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 5px 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow: hidden;
+            min-height: 0; /* let grid control height */
+        }
+
+        .day-cell:hover {
+            border-color: var(--accent-warm);
+            box-shadow: var(--shadow-sm);
+            transform: translateY(-1px);
+        }
+
+        /* ── Trip-range days ── */
+        .day-cell.in-trip {
+            background: linear-gradient(160deg, #fffaf6 0%, #fff4ec 100%);
+            border-color: rgba(217, 119, 87, 0.3);
+            border-left: 2px solid rgba(217, 119, 87, 0.5);
+        }
+        .day-cell.in-trip:hover {
+            border-color: var(--accent-warm);
+            border-left-color: var(--accent-warm);
+        }
+
+        /* ── Days with content ── */
+        .day-cell.has-plans {
+            background: linear-gradient(160deg, #fff8f4 0%, #ffeee5 100%);
+            border-color: rgba(217, 119, 87, 0.45);
+            border-left: 2px solid var(--accent-warm);
+            box-shadow: 0 1px 4px rgba(217, 119, 87, 0.08);
+        }
+        .day-cell.has-plans:hover {
+            box-shadow: 0 3px 10px rgba(217, 119, 87, 0.15);
+        }
+
+        .day-cell.trip-start,
+        .day-cell.trip-end {
+            border-left: 2px solid var(--accent-warm);
+            background: linear-gradient(160deg, #fff4ec 0%, #ffe8d8 100%);
+        }
+
+        .day-cell.other-month {
+            opacity: 0.25;
+            pointer-events: none;
+        }
+
+        .day-cell.selected {
+            border-color: var(--accent-warm) !important;
+            border-left-color: var(--accent-warm) !important;
+            box-shadow: 0 0 0 2px var(--accent-warm-light);
+        }
+
+        /* Trip start/end badge — tiny */
+        .trip-range-label {
+            position: absolute;
+            top: 2px; right: 2px;
+            font-size: 7px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 1px 3px;
+            border-radius: 3px;
+            line-height: 1.4;
+        }
+        .trip-range-start { background: var(--accent-warm); color: #fff; }
+        .trip-range-end   { background: var(--accent-sky);  color: #fff; }
+
+        .day-number {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .day-cell.in-trip .day-number { color: var(--accent-warm); }
+
+        .day-preview {
+            font-size: 8px;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.2;
+            flex-shrink: 0;
+        }
+
+        .day-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin-top: auto;
+        }
+
+        .day-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 1px;
+            font-size: 7px;
+            font-weight: 600;
+            padding: 1px 3px;
+            border-radius: 3px;
+            line-height: 1.4;
+        }
+        .day-pill-notes  { background: rgba(217,119,87,0.12); color: var(--accent-warm); }
+        .day-pill-photos { background: rgba(91,154,169,0.12); color: var(--accent-sky); }
+        .day-pill-links  { background: rgba(26,24,22,0.07);   color: var(--text-secondary); }
+        .plan-indicator  { display: none; }
 
         /* ── Sidebar hidden on mobile, shown on desktop ── */
         .sidebar { display: none; }
@@ -1364,7 +1498,6 @@
             to   { transform: translateY(0); }
         }
 
-        /* Drag handle */
         .day-detail-panel::before {
             content: '';
             display: block;
@@ -1375,7 +1508,7 @@
             flex-shrink: 0;
         }
 
-        /* Desktop: centered modal instead of sheet */
+        /* Desktop: centered modal */
         @media (min-width: 768px) {
             .day-detail-overlay { align-items: center; padding: 24px; }
             .day-detail-panel {
@@ -1387,7 +1520,7 @@
         }
 
         .day-detail-header {
-            padding: 16px 24px 16px;
+            padding: 16px 24px 14px;
             border-bottom: 1px solid var(--border-light);
             display: flex;
             justify-content: space-between;
@@ -1412,13 +1545,13 @@
         }
 
         .close-detail-btn {
-            width: 36px; height: 36px;
-            border-radius: 10px;
+            width: 34px; height: 34px;
+            border-radius: 9px;
             border: 1px solid var(--border-medium);
             background: transparent;
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            font-size: 22px;
+            font-size: 20px;
             color: var(--text-tertiary);
             transition: all 0.2s;
         }
@@ -1430,166 +1563,34 @@
             padding: 20px 24px 32px;
         }
 
-        /* Desktop: show sidebar with trip info */
+        /* Desktop: show sidebar */
         @media (min-width: 900px) {
             .app-container {
-                display: grid;
-                grid-template-columns: 260px 1fr;
-                grid-template-rows: 1fr;
+                flex-direction: row;
             }
             .sidebar {
                 display: flex;
                 flex-direction: column;
+                width: 220px;
+                flex-shrink: 0;
                 background: var(--bg-secondary);
                 border-right: 1px solid var(--border-light);
-                padding: 28px 20px;
+                padding: 20px 16px;
                 overflow-y: auto;
             }
             .logo {
                 font-family: 'Fraunces', serif;
-                font-size: 24px;
+                font-size: 22px;
                 font-weight: 600;
                 font-style: italic;
                 color: var(--accent-warm);
-                margin-bottom: 24px;
+                margin-bottom: 20px;
             }
-            .calendar-main { padding-bottom: 40px; }
+            .calendar-main {
+                flex: 1;
+                min-width: 0;
+            }
         }
-
-        .day-cell {
-            aspect-ratio: 1;
-            border: 1px solid var(--border-light);
-            border-radius: 12px;
-            padding: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            background: var(--bg-secondary);
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            overflow: hidden;
-        }
-
-        .day-cell:hover {
-            border-color: var(--accent-warm);
-            box-shadow: var(--shadow-sm);
-            transform: translateY(-2px);
-        }
-
-        /* ── Trip-range days: warm amber tint ── */
-        .day-cell.in-trip {
-            background: linear-gradient(160deg, #fffaf6 0%, #fff4ec 100%);
-            border-color: rgba(217, 119, 87, 0.3);
-            border-left: 3px solid rgba(217, 119, 87, 0.5);
-        }
-
-        .day-cell.in-trip:hover {
-            border-color: var(--accent-warm);
-            border-left-color: var(--accent-warm);
-        }
-
-        /* ── Days with saved content: richer treatment ── */
-        .day-cell.has-plans {
-            background: linear-gradient(160deg, #fff8f4 0%, #ffeee5 100%);
-            border-color: rgba(217, 119, 87, 0.45);
-            border-left: 3px solid var(--accent-warm);
-            box-shadow: 0 2px 8px rgba(217, 119, 87, 0.10);
-        }
-
-        .day-cell.has-plans:hover {
-            box-shadow: 0 4px 16px rgba(217, 119, 87, 0.18);
-            transform: translateY(-2px);
-        }
-
-        /* ── Start/end day: bolder left accent ── */
-        .day-cell.trip-start,
-        .day-cell.trip-end {
-            border-left: 3px solid var(--accent-warm);
-            background: linear-gradient(160deg, #fff4ec 0%, #ffe8d8 100%);
-        }
-
-        .day-cell.other-month {
-            opacity: 0.3;
-            pointer-events: none;
-        }
-
-        .day-cell.selected {
-            border-color: var(--accent-warm) !important;
-            border-left-color: var(--accent-warm) !important;
-            box-shadow: 0 0 0 3px var(--accent-warm-light);
-        }
-
-        /* Trip start / end label badge */
-        .trip-range-label {
-            position: absolute;
-            top: 5px;
-            right: 6px;
-            font-size: 9px;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            padding: 2px 5px;
-            border-radius: 4px;
-            line-height: 1.4;
-        }
-        .trip-range-start {
-            background: var(--accent-warm);
-            color: #fff;
-        }
-        .trip-range-end {
-            background: var(--accent-sky);
-            color: #fff;
-        }
-
-        .day-number {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-primary);
-            line-height: 1;
-            flex-shrink: 0;
-        }
-
-        .day-cell.in-trip .day-number {
-            color: var(--accent-warm);
-        }
-
-        .day-preview {
-            font-size: 9.5px;
-            color: var(--text-secondary);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            line-height: 1.3;
-            flex-shrink: 0;
-        }
-
-        /* Content-type pill row */
-        .day-pills {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 3px;
-            margin-top: auto;
-        }
-
-        .day-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
-            font-size: 9px;
-            font-weight: 600;
-            padding: 2px 5px;
-            border-radius: 4px;
-            line-height: 1.4;
-            letter-spacing: 0.02em;
-        }
-
-        .day-pill-notes  { background: rgba(217,119,87,0.12); color: var(--accent-warm); }
-        .day-pill-photos { background: rgba(91,154,169,0.12); color: var(--accent-sky); }
-        .day-pill-links  { background: rgba(26,24,22,0.07);   color: var(--text-secondary); }
-
-        /* Legacy plan-indicator kept for safety, hidden now */
-        .plan-indicator { display: none; }
 
         /* Details Panel */
         .details-panel {
