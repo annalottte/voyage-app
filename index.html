@@ -1292,6 +1292,163 @@
             gap: 8px;
         }
 
+        /* Structured notes styles */
+        .day-notes-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .day-notes-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .day-notes-section-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .day-notes-section-icon {
+            font-size: 15px;
+        }
+
+        .day-notes-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.2s ease;
+            background: var(--bg-secondary);
+            line-height: 1.6;
+        }
+
+        .day-notes-textarea:focus {
+            outline: none;
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 0 3px var(--accent-warm-light);
+        }
+
+        /* AI saved card styles */
+        .ai-saved-card {
+            background: linear-gradient(135deg, #0d0d1a 0%, #16213e 100%);
+            border: 1px solid rgba(201, 169, 110, 0.25);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 16px;
+            color: #e8d5b7;
+        }
+
+        .ai-saved-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .ai-saved-card-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(201, 169, 110, 0.7);
+        }
+
+        .ai-saved-card-dismiss {
+            background: transparent;
+            border: none;
+            color: rgba(232, 213, 183, 0.4);
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            padding: 0 4px;
+            transition: color 0.2s;
+        }
+
+        .ai-saved-card-dismiss:hover {
+            color: rgba(232, 213, 183, 0.9);
+        }
+
+        .ai-saved-card-headline {
+            font-family: 'Fraunces', serif;
+            font-size: 17px;
+            font-style: italic;
+            color: #f5efe6;
+            margin-bottom: 6px;
+        }
+
+        .ai-saved-card-intro {
+            font-size: 13px;
+            color: rgba(232, 213, 183, 0.6);
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        .ai-saved-activities {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .ai-saved-activity {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+            border: 1px solid rgba(232, 213, 183, 0.08);
+        }
+
+        .ai-saved-activity-emoji {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .ai-saved-activity-time {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: rgba(201, 169, 110, 0.6);
+            margin-bottom: 2px;
+        }
+
+        .ai-saved-activity-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #f5efe6;
+        }
+
+        .ai-saved-activity-desc {
+            font-size: 12px;
+            color: rgba(232, 213, 183, 0.5);
+            line-height: 1.5;
+            margin-top: 3px;
+        }
+
+        .ai-saved-tip {
+            display: flex;
+            align-items: flex-start;
+            gap: 7px;
+            padding: 10px 12px;
+            background: rgba(15, 52, 96, 0.3);
+            border-radius: 8px;
+            font-size: 12px;
+            color: rgba(180, 210, 255, 0.7);
+            line-height: 1.5;
+        }
+
         .notes-textarea {
             width: 100%;
             min-height: 120px;
@@ -2284,14 +2441,11 @@
                     </div>
                 </div>
 
+                <!-- ✅ FIX: replaced static <textarea id="dayNotes"> with a container div
+                     that renderStructuredNotes() and injectAIDayButton() both depend on -->
                 <div class="day-detail-section">
                     <div class="day-detail-section-title">📝 Notes</div>
-                    <textarea 
-                        class="notes-textarea" 
-                        id="dayNotes" 
-                        placeholder="Add your thoughts, plans, or memories for this day..."
-                        onchange="saveDayNotes()"
-                    ></textarea>
+                    <div id="dayNotesContainer"></div>
                 </div>
 
                 <div class="day-detail-section">
@@ -2470,23 +2624,17 @@
   async function bootstrap() {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 
-    // Supabase puts the recovery token in the URL hash as:
-    // #access_token=...&type=recovery  (older flow)
-    // or navigates via onAuthStateChange with event = PASSWORD_RECOVERY (newer PKCE flow)
     const hash = window.location.hash;
     const params = new URLSearchParams(hash.replace('#', '?'));
     const tokenType = params.get('type');
 
     if (tokenType === 'recovery') {
-      // Older implicit flow — Supabase has already exchanged the token into a session
       document.getElementById('loadingScreen').style.display = 'none';
       showPage('resetPasswordPage');
-      // Clean the URL so a refresh doesn't re-trigger this
       history.replaceState(null, '', window.location.pathname);
       return;
     }
 
-    // Listen for PASSWORD_RECOVERY event (PKCE / newer Supabase flow)
     supabaseClient.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         document.getElementById('loadingScreen').style.display = 'none';
