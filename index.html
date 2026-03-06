@@ -3827,8 +3827,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/topojson@3/dist/topojson.min.js"></script>
-    <script src="ui.js"></script>
-    <script src="supabase-integration.js"></script>
   <script>
   async function bootstrap() {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -3869,17 +3867,30 @@
   }
   bootstrap();
   </script>
-  <script src="ai-day-tips.js"></script>
+<!-- Load AI modules FIRST so window.AIDayTips and window.PackingPlanner exist -->
+<script src="ai-day-tips.js"></script>
+<script src="packing-planner.js"></script>
 
-  <!-- PWA: Register Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('Voyage SW registered:', reg.scope))
-          .catch(err => console.warn('SW registration failed:', err));
-      });
-    }
-  </script>
+<!-- Then load the main app -->
+<script src="ui.js"></script>
+<script src="supabase-integration.js"></script>
+
+<script>
+async function bootstrap() {
+  // ... your existing bootstrap code, unchanged ...
+}
+bootstrap();
+</script>
+
+<!-- PWA: Register Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('Voyage SW registered:', reg.scope))
+        .catch(err => console.warn('SW registration failed:', err));
+    });
+  }
+</script>
 </body>
 </html>
