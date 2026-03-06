@@ -1001,14 +1001,6 @@
     window._ppEditWeight = (catId, itemId) => _editWeight(catId, itemId, main);
     window._ppLoadTemplate = (tplId) => _loadTemplate(tplId, main);
     window._ppSaveTemplate = () => _saveAsTemplate(main);
-
-    // Wire generate button — remove any stale listener before attaching to avoid
-    // duplicate calls if _renderPackingTab is called multiple times.
-    const genBtn = document.getElementById('pp-ai-gen');
-    if (genBtn && !genBtn._wired) {
-      genBtn._wired = true;
-      genBtn.addEventListener('click', () => _generatePackingList(main));
-    }
   }
 
   function _aiBoxHTML() {
@@ -1065,6 +1057,8 @@
     `;
   }
 
+  window._ppGenerateList = () => { const m = document.getElementById('pp-main'); if (m) _generatePackingList(m); };
+  
   window._ppSetWeightLimit = (v) => { _weightLimit = parseFloat(v) * 1000 || 23000; };
 
   function _weightsHTML() {
