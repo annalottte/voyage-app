@@ -445,9 +445,10 @@ function openDayDetail() {
   const dayNumber = start && isFinite(start) ? (Math.ceil((selectedDate - start) / (1000 * 60 * 60 * 24)) + 1) : null;
   if (subEl) subEl.textContent = dayNumber && dayNumber > 0 ? `Day ${dayNumber} of your trip` : 'Plan ahead';
 
-  // ── Render structured notes sections + AI card ──────────────────────────────
-  renderStructuredNotes(dayData.notes || '');
-  // ───────────────────────────────────────────────────────────────────────────
+  // ── FIX: prefer richNotes (day_notes table) over legacy notes (trip_days table) ──
+  const richContent = currentTrip.richNotes?.[dateKey]?.content || dayData.notes || '';
+  renderStructuredNotes(richContent);
+  // ───────────────────────────────────────────────────────────────────────────────
 
   renderPhotos(dayData.photos || []);
   renderLinks(dayData.links || []);
@@ -503,7 +504,6 @@ function serializeNotesData() {
 
 /**
  * Renders the structured notes UI into #dayNotesContainer.
- * Replaces the old single #dayNotes textarea.
  */
 function renderStructuredNotes(rawNotes) {
   const container = document.getElementById('dayNotesContainer');
