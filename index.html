@@ -3168,7 +3168,27 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- =====================================================
+       COMPATIBILITY STUBS
+       supabase-integration.js sets textContent on these
+       elements. They are hidden — the new UI reads from
+       currentTrip / currentUser directly instead.
+       ===================================================== -->
+  <div style="display:none" aria-hidden="true">
+    <span id="welcomeMessage"></span>
+    <span id="selectedDate"></span>
+    <span id="sidebarTripTitle"></span>
+    <span id="loginError"></span>
+    <span id="signupError"></span>
+    <span id="loadingMessage"></span>
+    <span id="calendarTitle"></span>
+    <span id="tripTitle"></span>
+    <span id="tripProgress"></span>
+    <span id="userDisplayName"></span>
+    <span id="userEmail"></span>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
