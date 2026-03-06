@@ -61,89 +61,227 @@ function goToHomepage() {
 // HOMEPAGE (UI-only)
 // Reads `trips`, `pastTrips` from supabase-integration.js
 // ===========================
+// ===========================
+// HOMEPAGE (UI-only)
+// Reads `trips`, `pastTrips` from supabase-integration.js
+// ===========================
+
+/** Days between today and a date (positive = future, negative = past) */
+function daysUntil(dateStr) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr + 'T00:00:00');
+  return Math.round((d - today) / (1000*60*60*24));
+}
+
+function countdownLabel(trip) {
+  const start = trip.start_date || trip.startDate;
+  const end   = trip.end_date   || trip.endDate;
+  if (!start || !end) return null;
+  const dStart = daysUntil(start);
+  const dEnd   = daysUntil(end);
+  if (dStart > 0)        return { text: `in ${dStart}d`, cls: 'future' };
+  if (dStart <= 0 && dEnd >= 0) return { text: 'Ongoing ✈', cls: 'ongoing' };
+  return { text: 'Past', cls: 'past' };
+}
+
+function tripPlaceholderGradient(destination) {
+  // deterministic colour pair from destination string
+  const palettes = [
+    ['#d97757','#e8a838'], ['#5b9aa9','#7db87a'],
+    ['#c17ab8','#5b7ab8'], ['#e06b7a','#e8a838'],
+    ['#7db87a','#5b9aa9'], ['#8d6eb8','#d97757'],
+  ];
+  let h = 0;
+  for (let i = 0; i < (destination||'').length; i++) h = (h * 31 + destination.charCodeAt(i)) & 0xffff;
+  const [a, b] = palettes[h % palettes.length];
+  return `linear-gradient(135deg, ${a} 0%, ${b} 100%)`;
+}
+
 function renderHomepage() {
+  // ── Hero: pick the next upcoming or ongoing trip ──
+  const heroEl = document.getElementById('hpHero');
+  if (heroEl && typeof trips !== 'undefined') {
+    const sorted = [...trips].sort((a, b) => {
+      const da = daysUntil(a.start_date || a.startDate);
+      const db = daysUntil(b.start_date || b.startDate);
+      // Prefer ongoing > nearest future > past
+      const scoreA = da <= 0 && daysUntil(a.end_date||a.endDate) >= 0 ? -9999 : da;
+      const scoreB = db <= 0 && daysUntil(b.end_date||b.endDate) >= 0 ? -9999 : db;
+      return scoreA - scoreB;
+    });
+    const hero = sorted.find(t => {
+      const d = daysUntil(t.start_date || t.startDate);
+      const e = daysUntil(t.end_date   || t.endDate);
+      return d > -365; // anything within past year or future
+    });
+
+    if (hero) {
+      const start = new Date((hero.start_date||hero.startDate) + 'T00:00:00');
+      const end   = new Date((hero.end_date  ||hero.endDate)   + 'T00:00:00');
+      const cd    = countdownLabel(hero);
+      const img   = hero.image_url || hero.image || '';
+      const days  = isFinite(start) && isFinite(end) ? Math.ceil((end-start)/(1000*60*60*24))+1 : '';
+      const fmtStart = isFinite(start) ? start.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+      const fmtEnd   = isFinite(end)   ? end.toLocaleDateString('en-US',  {month:'short',day:'numeric',year:'numeric'}) : '';
+
+      heroEl.onclick = () => typeof openTrip === 'function' && openTrip(hero.id);
+      heroEl.innerHTML = `
+        ${img
+          ? `<img class="hp-hero-image" src="${img}" alt="${hero.destination||''}">`
+          : `<div class="hp-hero-placeholder"></div>`}
+        <div class="hp-hero-overlay"></div>
+        <div class="hp-hero-content">
+          <div class="hp-hero-eyebrow">${cd?.cls === 'ongoing' ? '✈ Currently travelling' : 'Next adventure'}</div>
+          <div class="hp-hero-title">${hero.destination || 'Trip'}</div>
+          <div class="hp-hero-meta">
+            <span class="hp-hero-dates">${fmtStart} – ${fmtEnd}${days ? ` · ${days} days` : ''}</span>
+            ${cd ? `<span class="hp-countdown ${cd.cls}">${cd.text}</span>` : ''}
+          </div>
+        </div>
+        <div class="hp-hero-open-btn">→</div>
+      `;
+    } else {
+      // No trips — keep the empty state already in HTML
+      heroEl.innerHTML = `
+        <div class="hp-hero-placeholder"></div>
+        <div class="hp-hero-overlay"></div>
+        <div class="hp-hero-content" style="justify-content:center;align-items:center;text-align:center;">
+          <div style="font-size:52px;margin-bottom:12px;">✈️</div>
+          <div style="font-family:'Fraunces',serif;font-size:26px;color:#fff;font-style:italic;margin-bottom:8px;">Where to next?</div>
+          <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-bottom:20px;">Plan your first adventure</div>
+          <button class="hp-hero-empty-btn" onclick="event.stopPropagation();openCreateTripModal()">+ Plan a Trip</button>
+        </div>
+      `;
+      heroEl.onclick = null;
+    }
+  }
+
+  // ── Trip cards ──
   const grid = document.getElementById('tripsGrid');
-  if (grid) grid.innerHTML = '';
-
-  if (typeof trips !== 'undefined' && Array.isArray(trips)) {
-    trips.forEach(trip => {
-      const card = document.createElement('div');
-      card.className = 'trip-card';
-      card.onclick = () => (typeof openTrip === 'function') && openTrip(trip.id);
-
-      const start = new Date(trip.start_date || trip.startDate);
-      const end   = new Date(trip.end_date   || trip.endDate);
-
-      const days = (isFinite(start) && isFinite(end))
-        ? Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
-        : '-';
-
-      const daysWithPlans = trip.days ? Object.keys(trip.days).length : 0;
-      const img = trip.image_url || trip.image || '';
-      const sharedBadge = trip._sharedRole ? '<div class="collab-badge">👥 Shared</div>' : '';
-
-      card.innerHTML = `
-        ${img ? `<img src="${img}" alt="${trip.destination || 'Trip'}" class="trip-card-image">`
-               : '<div class="trip-card-image"></div>'}
-        <div class="trip-card-content">
-          ${sharedBadge}
-          <div class="trip-card-title">${trip.destination || 'Trip'}</div>
-          <div class="trip-card-dates">
-            ${isFinite(start) ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
-            -
-            ${isFinite(end)   ? end.toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' })   : ''}
-          </div>
-          <div class="trip-card-stats">
-            <div class="trip-card-stat">📅 ${days} days</div>
-            <div class="trip-card-stat">✓ ${daysWithPlans} planned</div>
-          </div>
-          <button class="trip-share-btn" onclick="event.stopPropagation(); openCollaboratorsModal('${trip.id}')">👥 Share & Collaborate</button>
-          ${!trip._sharedRole ? `<button class="trip-delete-btn" onclick="event.stopPropagation(); deleteTrip('${trip.id}')">🗑️ Delete Trip</button>` : ''}
-          ${!trip._sharedRole ? `<button class="trip-archive-btn" onclick="event.stopPropagation(); archiveTrip('${trip.id}')">📦 Archive to Memory Lane</button>` : ''}
-        </div>
-      `;
-      grid && grid.appendChild(card);
-    });
+  if (grid) {
+    grid.innerHTML = '';
+    if (typeof trips !== 'undefined' && trips.length) {
+      trips.forEach((trip, idx) => renderTripCard(trip, idx, grid, false));
+    } else {
+      grid.innerHTML = `<div class="hp-empty"><div class="hp-empty-icon">🧳</div><div class="hp-empty-text">No trips yet — create one above!</div></div>`;
+    }
   }
 
+  // ── Past trip cards ──
   const pastGrid = document.getElementById('pastTripsGrid');
-  if (pastGrid) pastGrid.innerHTML = '';
-
-  if (typeof pastTrips !== 'undefined' && Array.isArray(pastTrips)) {
-    pastTrips.forEach(trip => {
-      const card = document.createElement('div');
-      card.className = 'trip-card';
-      card.onclick = () => openMemoryJournal(trip.id);
-
-      const start = new Date(trip.start_date || trip.startDate);
-      const end   = new Date(trip.end_date   || trip.endDate);
-      const img   = trip.image_url || trip.image || '';
-      const memoriesCount = trip.memories?.length || 0;
-
-      card.innerHTML = `
-        ${img ? `<img src="${img}" alt="${trip.destination || 'Trip'}" class="trip-card-image">`
-               : '<div class="trip-card-image"></div>'}
-        <div class="trip-card-content">
-          <div class="trip-card-title">${trip.destination || 'Trip'}</div>
-          <div class="trip-card-dates">
-            ${isFinite(start) ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
-            -
-            ${isFinite(end)   ? end.toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' })   : ''}
-          </div>
-          <div class="trip-card-stats">
-            <div class="trip-card-stat">✨ ${memoriesCount} memories</div>
-          </div>
-          <button class="trip-share-btn" style="margin-top:10px;" onclick="event.stopPropagation(); openAddMemoryModal('${trip.id}')">+ Add Memory</button>
-        </div>
-      `;
-      pastGrid && pastGrid.appendChild(card);
-    });
+  if (pastGrid) {
+    pastGrid.innerHTML = '';
+    if (typeof pastTrips !== 'undefined' && pastTrips.length) {
+      pastTrips.forEach((trip, idx) => renderTripCard(trip, idx, pastGrid, true));
+    } else {
+      pastGrid.innerHTML = `<div class="hp-empty"><div class="hp-empty-icon">📷</div><div class="hp-empty-text">Archive a trip to start your Memory Lane</div></div>`;
+    }
   }
 
-  // Init scratch map after render (slight delay so DOM is ready)
-  setTimeout(() => {
-    if (typeof initScratchMap === 'function') initScratchMap();
-  }, 100);
+  setTimeout(() => { if (typeof initScratchMap === 'function') initScratchMap(); }, 100);
+}
+
+function renderTripCard(trip, idx, container, isPast) {
+  const card = document.createElement('div');
+  card.className = 'trip-card';
+  card.style.animationDelay = `${idx * 0.07}s`;
+
+  const start = new Date((trip.start_date||trip.startDate) + 'T00:00:00');
+  const end   = new Date((trip.end_date  ||trip.endDate)   + 'T00:00:00');
+  const cd    = isPast ? null : countdownLabel(trip);
+  const img   = trip.image_url || trip.image || '';
+  const totalDays = isFinite(start) && isFinite(end)
+    ? Math.ceil((end - start) / (1000*60*60*24)) + 1 : null;
+  const daysPlanned = trip.days ? Object.keys(trip.days).length : 0;
+  const memoriesCount = trip.memories?.length || 0;
+  const sharedBadge = trip._sharedRole
+    ? '<span class="collab-badge" style="margin-bottom:6px;display:inline-block;">👥 Shared</span>' : '';
+
+  // Progress bar for ongoing
+  let progressBar = '';
+  if (cd?.cls === 'ongoing' && isFinite(start) && isFinite(end)) {
+    const elapsed = Math.abs(daysUntil(trip.start_date||trip.startDate));
+    const pct = Math.min(100, Math.round((elapsed / totalDays) * 100));
+    progressBar = `<div class="trip-progress-bar"><div class="trip-progress-fill" style="width:${pct}%"></div></div>`;
+  }
+
+  const fmtStart = isFinite(start) ? start.toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+  const fmtEnd   = isFinite(end)   ? end.toLocaleDateString('en-US',  {month:'short',day:'numeric',year:'numeric'}) : '';
+
+  const imgHtml = img
+    ? `<img class="trip-card-image" src="${img}" alt="${trip.destination||''}">`
+    : `<div class="trip-card-image-placeholder" style="background:${tripPlaceholderGradient(trip.destination)}"><span style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));font-size:44px;">✈️</span></div>`;
+
+  const statsHtml = isPast
+    ? `<span class="trip-card-stat">✨ ${memoriesCount} memories</span>`
+    : `<span class="trip-card-stat">📅 ${totalDays ?? '—'} days</span><span class="trip-card-stat">✓ ${daysPlanned} planned</span>`;
+
+  card.innerHTML = `
+    ${imgHtml}
+    <div class="trip-card-content">
+      ${sharedBadge}
+      ${progressBar}
+      <div class="trip-card-top">
+        <div class="trip-card-title">${trip.destination || 'Trip'}</div>
+        ${cd ? `<span class="trip-card-countdown ${cd.cls}">${cd.text}</span>` : ''}
+      </div>
+      <div class="trip-card-dates">${fmtStart} – ${fmtEnd}</div>
+      <div class="trip-card-footer">
+        <div class="trip-card-stats">${statsHtml}</div>
+        <button class="trip-card-menu-btn" onclick="event.stopPropagation(); toggleCardMenu(event, '${trip.id}', ${isPast})">···</button>
+      </div>
+    </div>
+  `;
+
+  card.addEventListener('click', () => {
+    if (isPast) openMemoryJournal(trip.id);
+    else if (typeof openTrip === 'function') openTrip(trip.id);
+  });
+
+  container.appendChild(card);
+}
+
+// Close any open dropdown when clicking outside
+document.addEventListener('click', () => {
+  document.querySelectorAll('.trip-card-dropdown').forEach(d => d.remove());
+});
+
+function toggleCardMenu(event, tripId, isPast) {
+  event.stopPropagation();
+  // Remove any existing dropdown
+  document.querySelectorAll('.trip-card-dropdown').forEach(d => d.remove());
+
+  const btn = event.currentTarget;
+  const card = btn.closest('.trip-card');
+
+  const menu = document.createElement('div');
+  menu.className = 'trip-card-dropdown';
+
+  const items = isPast ? [
+    { icon: '📖', label: 'Open Journal',  fn: `openMemoryJournal('${tripId}')` },
+    { icon: '📸', label: 'Add Memory',    fn: `openAddMemoryModal('${tripId}')` },
+  ] : [
+    { icon: '✈️', label: 'Open Calendar', fn: `(typeof openTrip==='function')&&openTrip('${tripId}')` },
+    { icon: '👥', label: 'Share & Collab', fn: `openCollaboratorsModal('${tripId}')` },
+    { icon: '📦', label: 'Archive Trip',  fn: `archiveTrip('${tripId}')` },
+    { icon: '🗑️', label: 'Delete Trip',   fn: `deleteTrip('${tripId}')`, danger: true },
+  ];
+
+  menu.innerHTML = items.map(it =>
+    `<button class="trip-card-dropdown-item${it.danger?' danger':''}" onclick="event.stopPropagation();${it.fn};document.querySelectorAll('.trip-card-dropdown').forEach(d=>d.remove())">
+      ${it.icon} ${it.label}
+    </button>`
+  ).join('');
+
+  card.style.position = 'relative';
+  card.appendChild(menu);
+
+  // Position it near the button
+  const btnRect = btn.getBoundingClientRect();
+  const cardRect = card.getBoundingClientRect();
+  menu.style.top  = (btnRect.bottom - cardRect.top + 4) + 'px';
+  menu.style.right = '8px';
+  menu.style.left  = 'auto';
 }
 
 // Ensure only one page is visible on first load
@@ -337,6 +475,36 @@ function editMemory(index) {
 // Reads `currentTrip` set by Supabase openTrip()
 // ===========================
 function renderCalendar() {
+  // Populate topbar from currentTrip whenever calendar renders
+  if (typeof currentTrip !== 'undefined' && currentTrip) {
+    const titleEl = document.getElementById('calendarTripTitle');
+    const metaEl  = document.getElementById('calendarTripMeta');
+    const chip    = document.getElementById('calCountdownChip');
+    const destEl  = document.getElementById('tripDestinationText');
+    const datesEl = document.getElementById('tripDates');
+
+    if (titleEl) titleEl.textContent = currentTrip.destination || 'Trip Calendar';
+
+    const start = new Date((currentTrip.start_date||currentTrip.startDate) + 'T00:00:00');
+    const end   = new Date((currentTrip.end_date  ||currentTrip.endDate)   + 'T00:00:00');
+    const fmtStart = isFinite(start) ? start.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+    const fmtEnd   = isFinite(end)   ? end.toLocaleDateString('en-US',  {month:'short',day:'numeric',year:'numeric'}) : '';
+    if (metaEl) metaEl.textContent = `${fmtStart} – ${fmtEnd}`;
+    if (destEl) destEl.textContent = currentTrip.destination || '—';
+    if (datesEl) datesEl.textContent = `${fmtStart} – ${fmtEnd}`;
+
+    const cd = countdownLabel(currentTrip);
+    if (chip) {
+      if (cd && cd.cls !== 'past') {
+        chip.textContent = cd.text;
+        chip.className = `cal-countdown-chip${cd.cls === 'ongoing' ? ' ongoing' : ''}`;
+        chip.style.display = '';
+      } else {
+        chip.style.display = 'none';
+      }
+    }
+  }
+
   const grid = document.getElementById('calendarGrid');
   if (!grid) return;
 
@@ -460,16 +628,20 @@ function selectDate(day) {
 
 function updateDetailsPanel() {
   if (!selectedDate) return;
-  const dateStr = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const selectedDateEl = document.getElementById('selectedDate');
-  if (selectedDateEl) selectedDateEl.textContent = dateStr;
-
-  const activitiesList = document.getElementById('activitiesList');
-  if (activitiesList) {
-    activitiesList.innerHTML = `
-      <div style="text-align: center; padding: 24px; color: var(--text-secondary);">
-        <p style="margin-bottom: 12px;">Click "View Day Details" to add notes, photos, and links for this day.</p>
-      </div>`;
+  // Update countdown chip on calendar page
+  if (typeof currentTrip !== 'undefined' && currentTrip) {
+    const chip = document.getElementById('calCountdownChip');
+    const meta = document.getElementById('calendarTripMeta');
+    if (chip) {
+      const cd = countdownLabel(currentTrip);
+      if (cd && cd.cls !== 'past') {
+        chip.textContent = cd.text;
+        chip.className = `cal-countdown-chip${cd.cls === 'ongoing' ? ' ongoing' : ''}`;
+        chip.style.display = '';
+      } else {
+        chip.style.display = 'none';
+      }
+    }
   }
 }
 
