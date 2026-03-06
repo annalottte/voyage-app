@@ -1,7 +1,7 @@
 // Voyage Service Worker
 // Caches core assets for offline use and faster loads
 
-const CACHE_NAME = 'voyage-v1';
+const CACHE_NAME = 'voyage-v2';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -10,6 +10,7 @@ const PRECACHE_ASSETS = [
   '/ui.js',
   '/supabase-integration.js',
   '/ai-day-tips.js',
+  '/nearby-explore.js',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
