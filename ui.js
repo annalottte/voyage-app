@@ -82,7 +82,6 @@ function countdownLabel(trip) {
 }
 
 function tripPlaceholderGradient(destination) {
-  // deterministic colour pair from destination string
   const palettes = [
     ['#d97757','#e8a838'], ['#5b9aa9','#7db87a'],
     ['#c17ab8','#5b7ab8'], ['#e06b7a','#e8a838'],
@@ -101,14 +100,13 @@ function renderHomepage() {
     const sorted = [...trips].sort((a, b) => {
       const da = daysUntil(a.start_date || a.startDate);
       const db = daysUntil(b.start_date || b.startDate);
-      // Prefer ongoing > nearest future > past
       const scoreA = da <= 0 && daysUntil(a.end_date||a.endDate) >= 0 ? -9999 : da;
       const scoreB = db <= 0 && daysUntil(b.end_date||b.endDate) >= 0 ? -9999 : db;
       return scoreA - scoreB;
     });
     const hero = sorted.find(t => {
       const d = daysUntil(t.start_date || t.startDate);
-      return d > -365; // anything within past year or future
+      return d > -365;
     });
 
     if (hero) {
@@ -192,7 +190,6 @@ function renderTripCard(trip, idx, container, isPast) {
   const sharedBadge = trip._sharedRole
     ? '<span class="collab-badge" style="margin-bottom:6px;display:inline-block;">👥 Shared</span>' : '';
 
-  // Progress bar for ongoing
   let progressBar = '';
   if (cd?.cls === 'ongoing' && isFinite(start) && isFinite(end)) {
     const elapsed = Math.abs(daysUntil(trip.start_date||trip.startDate));
@@ -237,37 +234,12 @@ function renderTripCard(trip, idx, container, isPast) {
 }
 
 // Close any open dropdown when clicking outside
-document.addEventListener('click', () => {
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.trip-card-menu-btn') || e.target.closest('.trip-card-dropdown')) return;
   document.querySelectorAll('.trip-card-dropdown').forEach(d => d.remove());
 });
 
 function toggleCardMenu(event, tripId, isPast) {
-  event.stopPropagation();
-  document.querySelectorAll('.trip-card-dropdown').forEach(d => d.remove());
-
-  const btn = event.currentTarget;
-  const card = btn.closest('.trip-card');
-
-  const menu = document.createElement('div');
-  menu.className = 'trip-card-dropdown';
-
-  const items = isPast ? [
-    { icon: '📖', label: 'Open Journal',  fn: `openMemoryJournal('${tripId}')` },
-    { icon: '📸', label: 'Add Memory',    fn: `openAddMemoryModal('${tripId}')` },
-  ] : [
-    { icon: '✈️', label: 'Open Calendar', fn: `(typeof openTrip==='function')&&openTrip('${tripId}')` },
-    { icon: '👥', label: 'Share & Collab', fn: `openCollaboratorsModal('${tripId}')` },
-    { icon: '📦', label: 'Archive Trip',  fn: `archiveTrip('${tripId}')` },
-    { icon: '🗑️', label: 'Delete Trip',   fn: `deleteTrip('${tripId}')`, danger: true },
-  ];
-
-  menu.innerHTML = items.map(it =>
-    `<button class="trip-card-dropdown-item${it.danger?' danger':''}" onclick="event.stopPropagation();${it.fn};document.querySelectorAll('.trip-card-dropdown').forEach(d=>d.remove())">
-      ${it.icon} ${it.label}
-    </button>`
-  ).join('');
-
-  function toggleCardMenu(event, tripId, isPast) {
   event.stopPropagation();
   document.querySelectorAll('.trip-card-dropdown').forEach(d => d.remove());
 
@@ -302,7 +274,6 @@ function toggleCardMenu(event, tripId, isPast) {
 
   document.body.appendChild(menu);
 
-  // Reposition if it goes off the right edge of the screen
   requestAnimationFrame(() => {
     const menuRect = menu.getBoundingClientRect();
     if (menuRect.right > window.innerWidth) {
@@ -312,13 +283,6 @@ function toggleCardMenu(event, tripId, isPast) {
       menu.style.top = `${btnRect.top - menuRect.height - 4}px`;
     }
   });
-}
-
-  const btnRect = btn.getBoundingClientRect();
-  const cardRect = card.getBoundingClientRect();
-  menu.style.top  = (btnRect.bottom - cardRect.top + 4) + 'px';
-  menu.style.right = '8px';
-  menu.style.left  = 'auto';
 }
 
 // Ensure only one page is visible on first load
@@ -345,7 +309,7 @@ function openMemoryJournal(tripId) {
   const end   = new Date(trip.end_date   || trip.endDate);
   if (datesEl) {
     const s = isFinite(start) ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-    const e = isFinite(end)   ? end.toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' })   : '';
+    const e = isFinite(end)   ? end.toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' }) : '';
     datesEl.textContent = `${s} - ${e}`;
   }
 
@@ -507,7 +471,6 @@ function editMemory(index) {
 // Reads `currentTrip` set by Supabase openTrip()
 // ===========================
 function renderCalendar() {
-  // Populate topbar from currentTrip whenever calendar renders
   if (typeof currentTrip !== 'undefined' && currentTrip) {
     const titleEl = document.getElementById('calendarTripTitle');
     const metaEl  = document.getElementById('calendarTripMeta');
@@ -549,7 +512,6 @@ function renderCalendar() {
     monthLabel.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   }
 
-  // keep weekday headers
   const weekdayEls = grid.querySelectorAll('.weekday');
   grid.innerHTML = '';
   weekdayEls.forEach(d => grid.appendChild(d));
@@ -579,7 +541,6 @@ function createDayCell(day, otherMonth, month) {
   const dateKey = getDateKey(cellDate);
   const dayData = (typeof currentTrip !== 'undefined') ? currentTrip?.days?.[dateKey] : null;
 
-  // Check rich notes too
   const richContent = (typeof currentTrip !== 'undefined') ? currentTrip?.richNotes?.[dateKey]?.content : null;
   const parsedRich = richContent ? parseNotesData(richContent) : null;
 
@@ -611,7 +572,6 @@ function createDayCell(day, otherMonth, month) {
                      !otherMonth;
   if (isSelected) cell.classList.add('selected');
 
-  // Build a one-line preview from the richest available source
   let previewText = '';
   if (parsedRich?.aiCard?.headline) {
     previewText = parsedRich.aiCard.headline;
@@ -702,22 +662,19 @@ function openDayDetail() {
   const dayNumber = start && isFinite(start) ? (Math.ceil((selectedDate - start) / (1000 * 60 * 60 * 24)) + 1) : null;
   if (subEl) subEl.textContent = dayNumber && dayNumber > 0 ? `Day ${dayNumber} of your trip` : 'Plan ahead';
 
-  // ── FIX: prefer richNotes (day_notes table) over legacy notes (trip_days table) ──
   const richContent = currentTrip.richNotes?.[dateKey]?.content || dayData.notes || '';
   renderStructuredNotes(richContent);
 
   renderPhotos(dayData.photos || []);
   renderLinks(dayData.links || []);
 
-  // Clear stale weather cache before fetching fresh data for this day
   _lastFetchedWeather = null;
 
-  // ── Inject AI Day Ideas button ──────────────────────────────────────────────
   injectAIDayButton(dayNumber);
 
-  const _ddoA = document.getElementById('dayDetailOverlay'); if (_ddoA && !_ddoA._isStub) _ddoA.classList.add('active');
+  const _ddoA = document.getElementById('dayDetailOverlay');
+  if (_ddoA && !_ddoA._isStub) _ddoA.classList.add('active');
 
-  // Fetch weather for this day
   if (currentTrip?.destination) {
     const dateStr = getDateKey(selectedDate);
     fetchWeatherForDay(currentTrip.destination, dateStr);
@@ -728,11 +685,6 @@ function openDayDetail() {
 // STRUCTURED NOTES
 // ===========================
 
-/**
- * Notes are stored as JSON in the existing `notes` field.
- * Format: { aiCard: {...}, morning: "...", afternoon: "...", evening: "..." }
- * Falls back gracefully if the field contains plain text (legacy).
- */
 function parseNotesData(raw) {
   if (!raw) return { aiCard: null, morning: '', afternoon: '', evening: '' };
   try {
@@ -744,7 +696,6 @@ function parseNotesData(raw) {
       evening: parsed.evening || '',
     };
   } catch (e) {}
-  // Legacy plain text — put it all in morning
   return { aiCard: null, morning: raw, afternoon: '', evening: '' };
 }
 
@@ -841,7 +792,8 @@ function buildAiCardHtml(card) {
 
 function dismissAiCard() {
   window._currentDayAiCard = null;
-  const _asc = document.getElementById('aiSavedCard'); if (_asc && !_asc._isStub) _asc.remove();
+  const _asc = document.getElementById('aiSavedCard');
+  if (_asc && !_asc._isStub) _asc.remove();
   scheduleDayNotesSave();
 }
 
@@ -860,27 +812,18 @@ function scheduleDayNotesSave() {
   }, 800);
 }
 
-/**
- * Injects (or refreshes) the AI Day Ideas button + vibe input inside the day detail modal.
- *
- * Clicking the button shows an inline vibe input row.
- * Pressing Enter or clicking "Get Ideas →" passes the vibe text to AIDayTips.open()
- * as the 6th `userPrefs` argument.
- */
 function injectAIDayButton(dayNumber) {
-  // Remove any stale elements first to avoid duplicates on re-open
-  ['aiDayTipsBtn', 'aiVibePrompt'].forEach(id => {
+  ['aiDayTipsBtn', 'aiVibePrompt', 'nearbyNowBtn'].forEach(id => {
     const el = document.getElementById(id);
     if (el && !el._isStub) el.remove();
   });
 
-  // Only inject if the ai-day-tips module is loaded
   if (typeof window.AIDayTips !== 'object') return;
 
   const notesContainer = document.getElementById('dayNotesContainer');
   if (!notesContainer) return;
 
-  // ── Button ──────────────────────────────────────────────────────────────
+  // ── AI Day Ideas button ──────────────────────────────────────────────────
   const btn = document.createElement('button');
   btn.id = 'aiDayTipsBtn';
   btn.className = 'ai-tips-trigger';
@@ -918,22 +861,17 @@ function injectAIDayButton(dayNumber) {
     <div style="font-size:11px;color:rgba(232,213,183,0.4);margin-top:6px;">Optional — leave blank for general suggestions</div>
   `;
 
-  // Insert both before the notes container
   notesContainer.parentNode.insertBefore(btn, notesContainer);
   notesContainer.parentNode.insertBefore(promptEl, notesContainer);
 
-  // ── Nearby Now button ─────────────────────────────────────────────────────
+  // ── Nearby Now button ────────────────────────────────────────────────────
   if (typeof window.NearbyNow === 'object') {
-    // Remove stale instance on re-open
-    const staleNN = document.getElementById('nearbyNowBtn');
-    if (staleNN && !staleNN._isStub) staleNN.remove();
-  
     const nnBtn = document.createElement('button');
     nnBtn.id = 'nearbyNowBtn';
     nnBtn.className = 'ai-tips-trigger';
     nnBtn.innerHTML = '<span class="sparkle">📍</span> Nearby Now';
     nnBtn.style.cssText = 'margin-bottom:14px; margin-left:8px;';
-  
+
     nnBtn.addEventListener('click', () => {
       const destination = currentTrip?.destination || 'your destination';
       navigator.geolocation?.getCurrentPosition(
@@ -941,14 +879,13 @@ function injectAIDayButton(dayNumber) {
         ()  => window.NearbyNow.open(destination, null, null)
       );
     });
-  
-    // Insert right after the AI Day Ideas button
+
     const aiBtn = document.getElementById('aiDayTipsBtn');
     if (aiBtn) aiBtn.after(nnBtn);
     else notesContainer.parentNode.insertBefore(nnBtn, notesContainer);
   }
 
-  // ── Wire up button click → show/hide prompt ──────────────────────────────
+  // ── Wire up AI Day Ideas toggle ──────────────────────────────────────────
   btn.addEventListener('click', () => {
     const isVisible = promptEl.style.display !== 'none';
     promptEl.style.display = isVisible ? 'none' : 'block';
@@ -957,7 +894,7 @@ function injectAIDayButton(dayNumber) {
     }
   });
 
-  // ── Wire up "Get Ideas" button ────────────────────────────────────────────
+  // ── Wire up "Get Ideas" ──────────────────────────────────────────────────
   function launchAI() {
     const userPrefs = (document.getElementById('aiVibeInput')?.value || '').trim();
     promptEl.style.display = 'none';
@@ -972,41 +909,37 @@ function injectAIDayButton(dayNumber) {
       dateStr,
       dayNumber,
       (formattedText, rawData) => {
-        // Store the raw AI data as the card and re-render
         window._currentDayAiCard = rawData || null;
         renderStructuredNotes(serializeNotesData());
-
-        // Trigger Supabase save
         if (typeof window.saveDayNotes === 'function') {
           const dateKey = getDateKey(selectedDate);
           window.saveDayNotes(currentTrip.id, dateKey, serializeNotesData());
         }
       },
-      _lastFetchedWeather,  // pre-fetched weather — avoids a second geocode call
-      userPrefs             // ← vibe / user request passed to AIDayTips
+      _lastFetchedWeather,
+      userPrefs
     );
   }
 
   document.getElementById('aiVibeGo').addEventListener('click', launchAI);
-
-  // Allow Enter key in the vibe input to trigger launch
   document.getElementById('aiVibeInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); launchAI(); }
   });
 }
 
 function closeDayDetail() {
-  const _ddo = document.getElementById('dayDetailOverlay'); if (_ddo && !_ddo._isStub) _ddo.classList.remove('active');
-  // Clean up AI button, vibe prompt, and card state
-  ['aiDayTipsBtn', 'aiVibePrompt'].forEach(id => {
-    const el = document.getElementById(id); if (el && !el._isStub) el.remove();
+  const _ddo = document.getElementById('dayDetailOverlay');
+  if (_ddo && !_ddo._isStub) _ddo.classList.remove('active');
+  ['aiDayTipsBtn', 'aiVibePrompt', 'nearbyNowBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el._isStub) el.remove();
   });
   window._currentDayAiCard = null;
   clearTimeout(_notesSaveTimer);
   renderCalendar();
 }
 
-// Delegators — implement in Supabase file if you want persistence
+// Delegators
 function handlePhotoUpload(event) {
   if (typeof window.handleDayPhotoUpload === 'function') return window.handleDayPhotoUpload(event);
   console.warn('Day photo upload not wired to Supabase yet.');
@@ -1223,6 +1156,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
     if (e.target === this) this.classList.remove('active');
   });
 });
+
 const _ddoEv = document.getElementById('dayDetailOverlay');
 if (_ddoEv && !_ddoEv._isStub) _ddoEv.addEventListener('click', function (e) {
   if (e.target === this) closeDayDetail();
@@ -1399,7 +1333,7 @@ async function handleCollabSearch() {
 // WEATHER WIDGET
 // ===========================
 
-const WMO_CODES = {
+var WMO_CODES = {
   0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',
   45:'Foggy',48:'Icy fog',
   51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',
@@ -1408,7 +1342,7 @@ const WMO_CODES = {
   95:'Thunderstorm',96:'Thunderstorm w/ hail',99:'Thunderstorm w/ heavy hail'
 };
 
-const WMO_ICONS = {
+var WMO_ICONS = {
   0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
   45:'🌫️',48:'🌫️',
   51:'🌦️',53:'🌧️',55:'🌧️',
@@ -1495,7 +1429,6 @@ async function fetchWeatherForDay(destination, dateStr) {
       </div>
     `;
 
-    // Cache for AIDayTips
     _lastFetchedWeather = {
       description: desc, icon, tempMax: tmax, tempMin: tmin,
       precipitation: precip ?? 0, windSpeed: wind,
@@ -1512,16 +1445,16 @@ async function fetchWeatherForDay(destination, dateStr) {
 // SCRATCH MAP
 // ===========================
 
-const SCRATCH_PALETTE = [
+var SCRATCH_PALETTE = [
   '#d97757','#5b9aa9','#e8a838','#7db87a','#c17ab8',
   '#e06b7a','#5b8dd9','#d4a853','#6bbfb0','#b87a5b',
   '#9b7dd4','#7ab8d4','#d4745b','#5ba87a','#d45b8d',
   '#8db85b','#5b7ab8','#d4b85b','#b85b7a','#5bd4c4',
 ];
 
-let visitedCountries = new Map();
-let scratchMapReady = false;
-let scratchColorCounter = 0;
+var visitedCountries = new Map();
+var scratchMapReady = false;
+var scratchColorCounter = 0;
 
 function getNextScratchColor() {
   const idx = scratchColorCounter % SCRATCH_PALETTE.length;
@@ -1746,10 +1679,9 @@ Write in second person ("you"). Keep it genuine and heartfelt, not generic.`;
 // =============================================
 
 function updateRightPanel() {
-  if (document.getElementById('pp-overlay')?.classList.contains('active')) return; // ← add this
+  if (document.getElementById('pp-overlay')?.classList.contains('active')) return;
   if (!currentTrip) return;
 
-  // Stats
   const start = new Date((currentTrip.start_date || currentTrip.startDate) + 'T00:00:00');
   const end   = new Date((currentTrip.end_date   || currentTrip.endDate)   + 'T00:00:00');
   const totalDays  = (isFinite(start) && isFinite(end))
@@ -1768,18 +1700,16 @@ function updateRightPanel() {
   set('rpStatUntil',   untilText);
   set('rpStatPct',     totalDays ? pct + '%' : '—');
 
-// ── Packing Planner button ──
-if (typeof window.PackingPlanner === 'object') {
-  let packingBtn = document.getElementById('rpPackingBtn');
-  if (packingBtn) {
-    packingBtn.style.display = 'flex';
-    packingBtn.onclick = () => window.PackingPlanner.open(currentTrip?.id, currentTrip);
+  // ── Packing Planner button ──
+  if (typeof window.PackingPlanner === 'object') {
+    const packingBtn = document.getElementById('rpPackingBtn');
+    if (packingBtn) {
+      packingBtn.style.display = 'flex';
+      packingBtn.onclick = () => window.PackingPlanner.open(currentTrip?.id, currentTrip);
+    }
   }
-}
-  
-  // ─────────────────────────────────────────────────────────────────────────
 
-  // Day card
+  // ── Day card ──
   const dayCard    = el('rpDayCard');
   const dayDate    = el('rpDayDate');
   const dayLabel   = el('rpDayLabel');
@@ -1791,9 +1721,8 @@ if (typeof window.PackingPlanner === 'object') {
     if (dayDate) { dayDate.textContent = dateStr; dayDate.style.cssText = ''; }
     if (dayLabel) dayLabel.textContent = 'Selected';
 
-    // ── FIX: use getDateKey (local time) and parseNotesData ──────────────────
     let preview = '';
-    const dateKey  = getDateKey(selectedDate);                              // ← was toISOString() which gave wrong UTC date
+    const dateKey   = getDateKey(selectedDate);
     const richEntry = currentTrip.richNotes?.[dateKey];
     const dayEntry  = currentTrip.days?.[dateKey];
 
@@ -1804,7 +1733,6 @@ if (typeof window.PackingPlanner === 'object') {
       const parsed = parseNotesData(dayEntry.notes);
       preview = parsed.aiCard?.headline || parsed.morning || parsed.afternoon || parsed.evening || dayEntry.notes || '';
     }
-    // ────────────────────────────────────────────────────────────────────────
 
     if (dayPreview) dayPreview.textContent = preview || 'Nothing planned yet — click to add notes, photos & ideas.';
     if (dayCard) dayCard.classList.toggle('has-content', !!preview);
