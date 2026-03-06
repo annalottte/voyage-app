@@ -680,6 +680,17 @@ function openDayDetail() {
   }
 }
 
+// Open Nearby Now from a trip/day view
+window.NearbyNow.open(trip.destination, userLat, userLng, (spots) => {
+  // spots = array of selected spot objects
+  saveToDay(spots);
+});
+
+// Open Route Optimizer directly (e.g. from a day's activity list)
+window.RouteOptimizer.open(dayActivities, trip.destination, userLat, userLng, (optimized) => {
+  saveDayRoute(optimized);
+});
+
 // ===========================
 // STRUCTURED NOTES
 // ===========================
