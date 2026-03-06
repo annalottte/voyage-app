@@ -688,7 +688,7 @@ function openDayDetail() {
   injectAIDayButton(dayNumber);
   // ───────────────────────────────────────────────────────────────────────────
 
-  document.getElementById('dayDetailOverlay')?.classList.add('active');
+  const _ddoA = document.getElementById('dayDetailOverlay'); if (_ddoA && !_ddoA._isStub) _ddoA.classList.add('active');
 
   // Fetch weather for this day
   if (currentTrip?.destination) {
@@ -817,7 +817,7 @@ function buildAiCardHtml(card) {
 
 function dismissAiCard() {
   window._currentDayAiCard = null;
-  document.getElementById('aiSavedCard')?.remove();
+  const _asc = document.getElementById('aiSavedCard'); if (_asc && !_asc._isStub) _asc.remove();
   scheduleDayNotesSave();
 }
 
@@ -842,7 +842,10 @@ function scheduleDayNotesSave() {
  */
 function injectAIDayButton(dayNumber) {
   // Remove any existing button first to avoid duplicates on re-open
-  document.getElementById('aiDayTipsBtn')?.remove();
+  const existing = document.getElementById('aiDayTipsBtn');
+  if (existing && !existing._isStub && typeof existing.remove === 'function') {
+    existing.remove();
+  }
 
   // Only inject if the ai-day-tips module is loaded
   if (typeof window.AIDayTips !== 'object') return;
@@ -886,9 +889,9 @@ function injectAIDayButton(dayNumber) {
 }
 
 function closeDayDetail() {
-  document.getElementById('dayDetailOverlay')?.classList.remove('active');
+  const _ddo = document.getElementById('dayDetailOverlay'); if (_ddo && !_ddo._isStub) _ddo.classList.remove('active');
   // Clean up the AI button and card state so they don't linger
-  document.getElementById('aiDayTipsBtn')?.remove();
+  const _adt = document.getElementById('aiDayTipsBtn'); if (_adt && !_adt._isStub) _adt.remove();
   window._currentDayAiCard = null;
   clearTimeout(_notesSaveTimer);
   renderCalendar();
@@ -1135,7 +1138,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
     if (e.target === this) this.classList.remove('active');
   });
 });
-document.getElementById('dayDetailOverlay')?.addEventListener('click', function (e) {
+const _ddoEv = document.getElementById('dayDetailOverlay'); if (_ddoEv && !_ddoEv._isStub) _ddoEv.addEventListener('click', function (e) {
   if (e.target === this) closeDayDetail();
 });
 
