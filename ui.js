@@ -1697,35 +1697,15 @@ function updateRightPanel() {
   set('rpStatUntil',   untilText);
   set('rpStatPct',     totalDays ? pct + '%' : '—');
 
-  // ── Packing Planner button ────────────────────────────────────────────────
-  // Inject once into the right panel sidebar (if packing-planner.js is loaded)
-  if (typeof window.PackingPlanner === 'object') {
-    let packingBtn = document.getElementById('rpPackingBtn');
-    if (!packingBtn) {
-      // Create and inject the button if it doesn't exist yet
-      const statsEl = el('rpStatDays')?.closest('.rp-stats');
-      if (statsEl) {
-        packingBtn = document.createElement('button');
-        packingBtn.id = 'rpPackingBtn';
-        packingBtn.style.cssText = `
-          display:flex;align-items:center;gap:8px;width:100%;
-          padding:10px 14px;margin-bottom:12px;
-          background:linear-gradient(135deg,rgba(217,119,87,.12),rgba(91,154,169,.08));
-          border:1px solid rgba(217,119,87,.25);border-radius:10px;
-          color:#d97757;font-family:inherit;font-size:13px;font-weight:600;
-          cursor:pointer;transition:all .2s;text-align:left;
-        `;
-        packingBtn.onmouseover = () => { packingBtn.style.background = 'linear-gradient(135deg,rgba(217,119,87,.2),rgba(91,154,169,.14))'; packingBtn.style.borderColor = 'rgba(217,119,87,.45)'; };
-        packingBtn.onmouseout  = () => { packingBtn.style.background = 'linear-gradient(135deg,rgba(217,119,87,.12),rgba(91,154,169,.08))'; packingBtn.style.borderColor = 'rgba(217,119,87,.25)'; };
-        packingBtn.innerHTML = '🎒 Smart Packing Planner';
-        statsEl.insertAdjacentElement('afterend', packingBtn);
-      }
-    }
-    // Always (re-)wire onclick so it reads the latest currentTrip at call time
-    if (packingBtn) {
-      packingBtn.onclick = () => window.PackingPlanner.open(currentTrip?.id, currentTrip);
-    }
+// ── Packing Planner button ──
+if (typeof window.PackingPlanner === 'object') {
+  let packingBtn = document.getElementById('rpPackingBtn');
+  if (packingBtn) {
+    packingBtn.style.display = 'flex';
+    packingBtn.onclick = () => window.PackingPlanner.open(currentTrip?.id, currentTrip);
   }
+}
+  
   // ─────────────────────────────────────────────────────────────────────────
 
   // Day card
