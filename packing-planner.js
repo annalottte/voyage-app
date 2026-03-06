@@ -1005,10 +1005,9 @@
     // Wire generate button — remove any stale listener before attaching to avoid
     // duplicate calls if _renderPackingTab is called multiple times.
     const genBtn = document.getElementById('pp-ai-gen');
-    if (genBtn) {
-      const fresh = genBtn.cloneNode(true);
-      genBtn.parentNode.replaceChild(fresh, genBtn);
-      fresh.addEventListener('click', () => _generatePackingList(main));
+    if (genBtn && !genBtn._wired) {
+      genBtn._wired = true;
+      genBtn.addEventListener('click', () => _generatePackingList(main));
     }
   }
 
