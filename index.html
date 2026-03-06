@@ -1198,23 +1198,386 @@
         }
 
         /* =============================================
-           CALENDAR PAGE — fits entirely on screen
+           CALENDAR PAGE — 3-column, fits 100vh
            ============================================= */
 
-        /* Lock the page itself to viewport height — no page scroll */
         #calendarPage {
             height: 100vh;
             overflow: hidden;
-            display: flex !important; /* override .page { display:block } */
+            display: flex !important;
             flex-direction: column;
         }
 
         .app-container {
+            display: grid;
+            grid-template-columns: 280px 1fr 360px;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            background: var(--bg-secondary);
+            padding: 24px;
+            overflow-y: auto;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .logo {
+            font-family: 'Fraunces', serif;
+            font-size: 28px;
+            font-weight: 600;
+            font-style: italic;
+            color: var(--accent-warm);
+            margin-bottom: 32px;
+            letter-spacing: -0.5px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 24px;
+        }
+        .back-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+        .nav-section { margin-bottom: 32px; }
+
+        .nav-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+
+        /* ── Calendar main: flex column, fills grid cell ── */
+        .calendar-main {
+            background: var(--bg-secondary);
             display: flex;
             flex-direction: column;
-            flex: 1;
-            min-height: 0; /* critical: lets flex children shrink below content size */
+            min-height: 0;
             overflow: hidden;
+            padding: 24px;
+        }
+
+        /* Topbar elements for new design — kept compact */
+        .cal-topbar { display: none; } /* hidden; sidebar handles trip info */
+        .cal-month-bar { display: none; } /* replaced by calendar-header below */
+
+        .calendar-header-image {
+            width: calc(100% + 48px);
+            height: 200px;
+            margin: -24px -24px 24px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-light);
+            flex-shrink: 0;
+        }
+
+        .calendar-title {
+            font-family: 'Fraunces', serif;
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        /* Countdown chip next to title */
+        .cal-countdown-chip {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: #fef3ee;
+            color: var(--accent-warm);
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+        .cal-countdown-chip.ongoing { background: #edf7ed; color: #2e7d32; }
+
+        .month-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .month-label {
+            font-size: 16px;
+            font-weight: 500;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .nav-btn {
+            width: 34px; height: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--border-medium);
+            background: var(--bg-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+        .nav-btn:hover { background: var(--bg-hover); }
+
+        /* ── Calendar grid: fills remaining vertical space ── */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: auto repeat(6, 1fr);
+            gap: 6px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .weekday {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-tertiary);
+            padding: 8px 0 4px;
+        }
+
+        /* Day cells — no aspect-ratio, fill grid rows */
+        .day-cell {
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 7px 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .day-cell:hover {
+            border-color: var(--accent-warm);
+            box-shadow: var(--shadow-sm);
+            transform: translateY(-1px);
+        }
+
+        .day-cell.in-trip {
+            background: linear-gradient(160deg, #fffaf6 0%, #fff4ec 100%);
+            border-color: rgba(217,119,87,0.3);
+            border-left: 3px solid rgba(217,119,87,0.5);
+        }
+        .day-cell.in-trip:hover { border-color: var(--accent-warm); border-left-color: var(--accent-warm); }
+
+        .day-cell.has-plans {
+            background: linear-gradient(160deg, #fff8f4 0%, #ffeee5 100%);
+            border-color: rgba(217,119,87,0.45);
+            border-left: 3px solid var(--accent-warm);
+            box-shadow: 0 1px 4px rgba(217,119,87,0.08);
+        }
+        .day-cell.has-plans:hover { box-shadow: 0 3px 10px rgba(217,119,87,0.15); }
+
+        .day-cell.trip-start,
+        .day-cell.trip-end {
+            border-left: 3px solid var(--accent-warm);
+            background: linear-gradient(160deg, #fff4ec 0%, #ffe8d8 100%);
+        }
+
+        .day-cell.other-month { opacity: 0.25; pointer-events: none; }
+
+        .day-cell.selected {
+            border-color: var(--accent-warm) !important;
+            border-left-color: var(--accent-warm) !important;
+            box-shadow: 0 0 0 2px var(--accent-warm-light);
+        }
+
+        .trip-range-label {
+            position: absolute;
+            top: 3px; right: 3px;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 1px 4px;
+            border-radius: 3px;
+            line-height: 1.4;
+        }
+        .trip-range-start { background: var(--accent-warm); color: #fff; }
+        .trip-range-end   { background: var(--accent-sky);  color: #fff; }
+
+        .day-number {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .day-cell.in-trip .day-number { color: var(--accent-warm); }
+
+        .day-preview {
+            font-size: 9px;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.2;
+            flex-shrink: 0;
+        }
+
+        .day-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin-top: auto;
+        }
+
+        .day-pill {
+            display: inline-flex;
+            align-items: center;
+            font-size: 8px;
+            font-weight: 600;
+            padding: 1px 4px;
+            border-radius: 3px;
+            line-height: 1.4;
+        }
+        .day-pill-notes  { background: rgba(217,119,87,0.12); color: var(--accent-warm); }
+        .day-pill-photos { background: rgba(91,154,169,0.12);  color: var(--accent-sky); }
+        .day-pill-links  { background: rgba(26,24,22,0.07);    color: var(--text-secondary); }
+        .plan-indicator  { display: none; }
+
+        /* ── Details panel ── */
+        .details-panel {
+            background: var(--bg-secondary);
+            padding: 24px;
+            overflow-y: auto;
+            border-left: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Slide-up day detail sheet ── */
+        .day-detail-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(26,24,22,0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 24px;
+        }
+        .day-detail-overlay.active { display: flex; }
+
+        .day-detail-panel {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 680px;
+            max-height: 88vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.25s ease;
+        }
+
+        .day-detail-panel::before { display: none; }
+
+        .day-detail-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-shrink: 0;
+        }
+
+        .day-detail-title-section { flex: 1; }
+
+        .day-detail-date {
+            font-family: 'Fraunces', serif;
+            font-size: 26px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        .day-detail-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .close-detail-btn {
+            width: 34px; height: 34px;
+            border-radius: 9px;
+            border: 1px solid var(--border-medium);
+            background: transparent;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            color: var(--text-tertiary);
+            transition: all 0.2s;
+        }
+        .close-detail-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+        .day-detail-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px 32px;
+        }
+
+        /* ── Responsive: slightly narrower columns on smaller desktops ── */
+        @media (max-width: 1100px) {
+            .app-container { grid-template-columns: 220px 1fr 300px; }
+        }
+
+        /* ── Mobile: single column, slide-up sheet ── */
+        @media (max-width: 768px) {
+            .app-container { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .details-panel { display: none; }
+            .calendar-main { padding: 12px; }
+            .calendar-header-image { margin: -12px -12px 12px; height: 120px; }
+            .day-detail-overlay { align-items: flex-end; padding: 0; }
+            .day-detail-panel {
+                border-radius: 24px 24px 0 0;
+                max-height: 92vh;
+                animation: slideUpSheet 0.3s cubic-bezier(0.32,0.72,0,1);
+            }
+            .day-detail-panel::before {
+                content: '';
+                display: block;
+                width: 36px; height: 4px;
+                background: var(--border-medium);
+                border-radius: 2px;
+                margin: 12px auto 0;
+                flex-shrink: 0;
+            }
+        }
+
+        @keyframes slideUpSheet {
+            from { transform: translateY(100%); }
+            to   { transform: translateY(0); }
         }
 
         /* ── Calendar top bar ── */
@@ -2874,45 +3237,39 @@
     <div id="calendarPage" class="page">
         <div class="app-container">
 
-            <!-- Sidebar (desktop only, shown via CSS) -->
+            <!-- Sidebar -->
             <div class="sidebar">
                 <div class="logo">Voyage</div>
-                <button class="cal-back-btn" onclick="goToHomepage()" style="width:auto;padding:8px 14px;border-radius:8px;gap:6px;font-size:13px;margin-bottom:20px;">← Home</button>
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-tertiary);margin-bottom:12px;">Trip Details</div>
-                <div id="tripInfo" style="padding:14px;background:var(--bg-primary);border-radius:10px;">
-                    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:2px;">Destination</div>
-                    <div id="tripDestinationText" style="font-size:15px;font-weight:600;margin-bottom:12px;">—</div>
-                    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:2px;">Dates</div>
-                    <div id="tripDates" style="font-size:14px;font-weight:500;color:var(--text-primary);">—</div>
+                <button class="back-btn" onclick="goToHomepage()">← Back to Trips</button>
+                <div class="nav-section">
+                    <div class="nav-title" id="sidebarTripTitle">Trip Details</div>
+                    <div id="tripInfo" style="padding:12px;background:var(--bg-primary);border-radius:8px;margin-top:12px;">
+                        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Destination</div>
+                        <div id="tripDestinationText" style="font-size:14px;font-weight:500;margin-bottom:12px;">—</div>
+                        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Dates</div>
+                        <div id="tripDates" style="font-size:14px;font-weight:500;">—</div>
+                    </div>
                 </div>
             </div>
 
             <!-- Calendar main -->
             <div class="calendar-main">
-
-                <!-- Mobile top bar -->
-                <div class="cal-topbar">
-                    <button class="cal-back-btn" onclick="goToHomepage()">←</button>
-                    <div class="cal-topbar-info">
-                        <div class="cal-trip-name" id="calendarTripTitle">Trip Calendar</div>
-                        <div class="cal-trip-meta" id="calendarTripMeta"></div>
-                    </div>
-                    <div class="cal-countdown-chip" id="calCountdownChip" style="display:none"></div>
-                </div>
-
-                <!-- Optional header image -->
                 <img id="calendarHeaderImage" class="calendar-header-image" style="display:none;" alt="Trip header">
 
-                <!-- Month nav -->
-                <div class="cal-month-bar">
-                    <span class="month-label" id="currentMonth">March 2025</span>
-                    <div class="month-nav">
-                        <button class="nav-btn" onclick="previousMonth()">‹</button>
-                        <button class="nav-btn" onclick="nextMonth()">›</button>
+                <div class="calendar-header">
+                    <div>
+                        <h1 class="calendar-title" id="calendarTripTitle">Trip Calendar</h1>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:16px;">
+                        <span class="cal-countdown-chip" id="calCountdownChip" style="display:none"></span>
+                        <div class="month-nav">
+                            <button class="nav-btn" onclick="previousMonth()">‹</button>
+                            <span class="month-label" id="currentMonth">March 2025</span>
+                            <button class="nav-btn" onclick="nextMonth()">›</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Calendar grid -->
                 <div class="calendar-grid" id="calendarGrid">
                     <div class="weekday">Sun</div>
                     <div class="weekday">Mon</div>
@@ -2921,6 +3278,20 @@
                     <div class="weekday">Thu</div>
                     <div class="weekday">Fri</div>
                     <div class="weekday">Sat</div>
+                </div>
+            </div>
+
+            <!-- Details panel -->
+            <div class="details-panel" id="detailsPanel">
+                <div class="details-header">
+                    <div class="selected-date" id="selectedDate">Select a day</div>
+                    <div class="date-subtitle">Click any day to view details</div>
+                </div>
+                <button class="add-activity-btn" onclick="openDayDetail()">View Day Details</button>
+                <div class="activities-list" id="activitiesList">
+                    <div style="text-align:center;padding:32px;color:var(--text-tertiary);">
+                        Select a day to start planning
+                    </div>
                 </div>
             </div>
 
