@@ -1013,13 +1013,15 @@
             aspect-ratio: 1;
             border: 1px solid var(--border-light);
             border-radius: 12px;
-            padding: 12px;
+            padding: 10px;
             cursor: pointer;
             transition: all 0.2s ease;
             position: relative;
             background: var(--bg-secondary);
             display: flex;
             flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
         }
 
         .day-cell:hover {
@@ -1028,9 +1030,36 @@
             transform: translateY(-2px);
         }
 
-        .day-cell.has-plans {
-            background: linear-gradient(135deg, var(--accent-warm-light) 0%, var(--accent-sky-light) 100%);
+        /* ── Trip-range days: warm amber tint ── */
+        .day-cell.in-trip {
+            background: linear-gradient(160deg, #fffaf6 0%, #fff4ec 100%);
+            border-color: rgba(217, 119, 87, 0.3);
+            border-left: 3px solid rgba(217, 119, 87, 0.5);
+        }
+
+        .day-cell.in-trip:hover {
             border-color: var(--accent-warm);
+            border-left-color: var(--accent-warm);
+        }
+
+        /* ── Days with saved content: richer treatment ── */
+        .day-cell.has-plans {
+            background: linear-gradient(160deg, #fff8f4 0%, #ffeee5 100%);
+            border-color: rgba(217, 119, 87, 0.45);
+            border-left: 3px solid var(--accent-warm);
+            box-shadow: 0 2px 8px rgba(217, 119, 87, 0.10);
+        }
+
+        .day-cell.has-plans:hover {
+            box-shadow: 0 4px 16px rgba(217, 119, 87, 0.18);
+            transform: translateY(-2px);
+        }
+
+        /* ── Start/end day: bolder left accent ── */
+        .day-cell.trip-start,
+        .day-cell.trip-end {
+            border-left: 3px solid var(--accent-warm);
+            background: linear-gradient(160deg, #fff4ec 0%, #ffe8d8 100%);
         }
 
         .day-cell.other-month {
@@ -1039,35 +1068,81 @@
         }
 
         .day-cell.selected {
-            border-color: var(--accent-warm);
+            border-color: var(--accent-warm) !important;
+            border-left-color: var(--accent-warm) !important;
             box-shadow: 0 0 0 3px var(--accent-warm-light);
         }
 
+        /* Trip start / end label badge */
+        .trip-range-label {
+            position: absolute;
+            top: 5px;
+            right: 6px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 2px 5px;
+            border-radius: 4px;
+            line-height: 1.4;
+        }
+        .trip-range-start {
+            background: var(--accent-warm);
+            color: #fff;
+        }
+        .trip-range-end {
+            background: var(--accent-sky);
+            color: #fff;
+        }
+
         .day-number {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .day-cell.in-trip .day-number {
+            color: var(--accent-warm);
         }
 
         .day-preview {
-            font-size: 10px;
+            font-size: 9.5px;
             color: var(--text-secondary);
             overflow: hidden;
             text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
+            white-space: nowrap;
+            line-height: 1.3;
+            flex-shrink: 0;
         }
 
-        .plan-indicator {
-            position: absolute;
-            bottom: 8px;
-            right: 8px;
-            width: 6px;
-            height: 6px;
-            background: var(--accent-warm);
-            border-radius: 50%;
+        /* Content-type pill row */
+        .day-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-top: auto;
         }
+
+        .day-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 9px;
+            font-weight: 600;
+            padding: 2px 5px;
+            border-radius: 4px;
+            line-height: 1.4;
+            letter-spacing: 0.02em;
+        }
+
+        .day-pill-notes  { background: rgba(217,119,87,0.12); color: var(--accent-warm); }
+        .day-pill-photos { background: rgba(91,154,169,0.12); color: var(--accent-sky); }
+        .day-pill-links  { background: rgba(26,24,22,0.07);   color: var(--text-secondary); }
+
+        /* Legacy plan-indicator kept for safety, hidden now */
+        .plan-indicator { display: none; }
 
         /* Details Panel */
         .details-panel {
