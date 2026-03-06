@@ -889,6 +889,32 @@ function injectAIDayButton(dayNumber) {
   notesContainer.parentNode.insertBefore(btn, notesContainer);
   notesContainer.parentNode.insertBefore(promptEl, notesContainer);
 
+  // ── Nearby Now button ─────────────────────────────────────────────────────
+  if (typeof window.NearbyNow === 'object') {
+    // Remove stale instance on re-open
+    const staleNN = document.getElementById('nearbyNowBtn');
+    if (staleNN && !staleNN._isStub) staleNN.remove();
+  
+    const nnBtn = document.createElement('button');
+    nnBtn.id = 'nearbyNowBtn';
+    nnBtn.className = 'ai-tips-trigger';
+    nnBtn.innerHTML = '<span class="sparkle">📍</span> Nearby Now';
+    nnBtn.style.cssText = 'margin-bottom:14px; margin-left:8px;';
+  
+    nnBtn.addEventListener('click', () => {
+      const destination = currentTrip?.destination || 'your destination';
+      navigator.geolocation?.getCurrentPosition(
+        pos => window.NearbyNow.open(destination, pos.coords.latitude, pos.coords.longitude),
+        ()  => window.NearbyNow.open(destination, null, null)
+      );
+    });
+  
+    // Insert right after the AI Day Ideas button
+    const aiBtn = document.getElementById('aiDayTipsBtn');
+    if (aiBtn) aiBtn.after(nnBtn);
+    else notesContainer.parentNode.insertBefore(nnBtn, notesContainer);
+  }
+
   // ── Wire up button click → show/hide prompt ──────────────────────────────
   btn.addEventListener('click', () => {
     const isVisible = promptEl.style.display !== 'none';
