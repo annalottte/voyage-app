@@ -1052,7 +1052,7 @@
           TRIP ACTIVITIES — tag what you'll be doing:
         </div>
         <div class="pp-act-tags">${tags}</div>
-        <button class="pp-ai-gen-btn" id="pp-ai-gen">✦ Generate Smart Packing List</button>
+        <button class="pp-ai-gen-btn" id="pp-ai-gen" onclick="window._ppGenerateList()">✦ Generate Smart Packing List</button>
       </div>
     `;
   }
