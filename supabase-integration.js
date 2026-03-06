@@ -1,14 +1,10 @@
 // Supabase Integration for Voyage Travel Planner
-// Add this to replace the mock authentication and data storage
 
 // Initialize Supabase
-const SUPABASE_URL = 'https://yclhhvvzjojzosummjyk.supabase.co'; // Get from Supabase dashboard
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljbGhodnZ6am9qem9zdW1tanlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NTg3MTksImV4cCI6MjA4ODEzNDcxOX0.pYB_T63PsSdSf_WMagHHQnnKnNUhfL1ioiX7ing2x5w'; // Get from Supabase dashboard
+const SUPABASE_URL = 'https://yclhhvvzjojzosummjyk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljbGhodnZ6am9qem9zdW1tanlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NTg3MTksImV4cCI6MjA4ODEzNDcxOX0.pYB_T63PsSdSf_WMagHHQnnKnNUhfL1ioiX7ing2x5w';
 
-// Create the client and expose it globally
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Optional local alias for convenience inside this file
 const supabaseClient = window.supabaseClient;
 
 // ============================================================================
@@ -27,9 +23,7 @@ async function signup(event) {
         const { data: authData, error: authError } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
-            options: {
-                data: { name: name }
-            }
+            options: { data: { name: name } }
         });
 
         if (authError) throw authError;
@@ -57,7 +51,6 @@ async function login(event) {
 
         if (error) throw error;
 
-        // Get user profile
         const { data: profile } = await supabaseClient
             .from('profiles')
             .select('*')
@@ -71,7 +64,6 @@ async function login(event) {
             isPublic: profile?.is_public || false
         };
 
-        // Load trips
         const { data: tripsData } = await supabaseClient
             .from('trips')
             .select('*')
@@ -137,7 +129,6 @@ async function sendPasswordReset(event) {
         btn.textContent = 'Sent!';
         document.getElementById('resetEmail').value = '';
 
-        // Auto-return to login after 4s
         setTimeout(() => {
             successEl.style.display = 'none';
             btn.disabled = false;
@@ -230,8 +221,6 @@ async function confirmDeleteAccount() {
     try {
         const userId = currentUser.id;
 
-        // 1. Delete all trip data belonging to the user (cascade should handle children,
-        //    but we clean up explicitly for safety)
         const { data: userTrips } = await supabaseClient
             .from('trips')
             .select('id')
@@ -239,29 +228,20 @@ async function confirmDeleteAccount() {
 
         if (userTrips?.length) {
             const tripIds = userTrips.map(t => t.id);
-
-            // Delete trip days (photos + links cascade via FK)
             await supabaseClient.from('trip_days').delete().in('trip_id', tripIds);
-
-            // Delete memories (photos cascade)
+            // ── also delete notes rows ──
+            await supabaseClient.from('day_notes').delete().in('trip_id', tripIds);
             await supabaseClient.from('memories').delete().in('trip_id', tripIds);
-
-            // Delete collaborator entries
             await supabaseClient.from('trip_collaborators').delete().in('trip_id', tripIds);
-
-            // Delete trips
             await supabaseClient.from('trips').delete().eq('user_id', userId);
         }
 
-        // 2. Delete friendships
         await supabaseClient.from('friendships').delete()
             .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
 
-        // 3. Delete profile
         await supabaseClient.from('profiles').delete().eq('id', userId);
 
-        // 4. Call the Edge Function to delete the auth.users record server-side
-        const { data: { session } } = await supabaseClient.auth.getSession()
+        const { data: { session } } = await supabaseClient.auth.getSession();
         const response = await fetch(
             `${supabaseClient.supabaseUrl}/functions/v1/delete-user`,
             {
@@ -271,19 +251,17 @@ async function confirmDeleteAccount() {
                     'Content-Type': 'application/json',
                 },
             }
-        )
+        );
 
         if (!response.ok) {
-            const err = await response.json()
-            throw new Error(err.error || 'Edge Function error')
+            const err = await response.json();
+            throw new Error(err.error || 'Edge Function error');
         }
 
         await supabaseClient.auth.signOut();
-
         currentUser = null;
         trips = [];
         pastTrips = [];
-
         alert('Your account has been deleted. We\'re sorry to see you go. 👋');
         showPage('loginPage');
 
@@ -295,7 +273,6 @@ async function confirmDeleteAccount() {
 
 async function loadUserData(user) {
     try {
-        // Get user profile
         const { data: profile, error: profileError } = await supabaseClient
             .from('profiles')
             .select('*')
@@ -311,7 +288,6 @@ async function loadUserData(user) {
             isPublic: profile.is_public
         };
 
-        // Load trips
         const { data: tripsData, error: tripsError } = await supabaseClient
             .from('trips')
             .select('*')
@@ -320,10 +296,8 @@ async function loadUserData(user) {
             .order('start_date', { ascending: true });
 
         if (tripsError) throw tripsError;
-
         trips = tripsData || [];
 
-        // Load past trips
         const { data: pastTripsData, error: pastTripsError } = await supabaseClient
             .from('trips')
             .select('*')
@@ -332,17 +306,12 @@ async function loadUserData(user) {
             .order('start_date', { ascending: false });
 
         if (pastTripsError) throw pastTripsError;
-
         pastTrips = pastTripsData || [];
 
-        // Load memories for past trips
         for (let trip of pastTrips) {
             const { data: memories, error: memoriesError } = await supabaseClient
                 .from('memories')
-                .select(`
-                    *,
-                    memory_photos (*)
-                `)
+                .select(`*, memory_photos (*)`)
                 .eq('trip_id', trip.id)
                 .order('date', { ascending: true });
 
@@ -353,10 +322,7 @@ async function loadUserData(user) {
                     notes: m.notes,
                     photos: m.memory_photos.map(p => ({
                         url: p.url,
-                        geoLocation: p.latitude && p.longitude ? {
-                            lat: p.latitude,
-                            lng: p.longitude
-                        } : null
+                        geoLocation: p.latitude && p.longitude ? { lat: p.latitude, lng: p.longitude } : null
                     }))
                 }));
             }
@@ -364,7 +330,6 @@ async function loadUserData(user) {
 
         document.getElementById('welcomeMessage').textContent = `Welcome back, ${currentUser.name}!`;
 
-        // Load friends and shared trips
         await loadFriends();
         const shared = await loadSharedTrips();
         if (shared.length) {
@@ -401,19 +366,14 @@ async function createTrip(event) {
         let imageUrl = null;
         let headerImageUrl = null;
 
-        // Upload images to Supabase Storage
-        if (currentTripImageData) {
-            imageUrl = await uploadImage(currentTripImageData, 'trip-images');
-        }
-        if (currentTripHeaderData) {
-            headerImageUrl = await uploadImage(currentTripHeaderData, 'trip-images');
-        }
+        if (currentTripImageData) imageUrl = await uploadImage(currentTripImageData, 'trip-images');
+        if (currentTripHeaderData) headerImageUrl = await uploadImage(currentTripHeaderData, 'trip-images');
 
         const { data, error } = await supabaseClient
             .from('trips')
             .insert([{
                 user_id: currentUser.id,
-                destination: destination,
+                destination,
                 start_date: startDate,
                 end_date: endDate,
                 image_url: imageUrl,
@@ -440,7 +400,6 @@ async function deleteTrip(tripId) {
     if (!confirm('Are you sure you want to delete this trip? This cannot be undone.')) return;
 
     try {
-        // Delete child data first
         const { data: days } = await supabaseClient
             .from('trip_days')
             .select('id')
@@ -453,17 +412,15 @@ async function deleteTrip(tripId) {
             await supabaseClient.from('trip_days').delete().eq('trip_id', tripId);
         }
 
+        // ── delete notes for this trip ──
+        await supabaseClient.from('day_notes').delete().eq('trip_id', tripId);
+
         await supabaseClient.from('trip_collaborators').delete().eq('trip_id', tripId);
         await supabaseClient.from('memories').delete().eq('trip_id', tripId);
 
-        const { error } = await supabaseClient
-            .from('trips')
-            .delete()
-            .eq('id', tripId);
-
+        const { error } = await supabaseClient.from('trips').delete().eq('id', tripId);
         if (error) throw error;
 
-        // Remove from local array and re-render
         trips = trips.filter(t => t.id !== tripId);
         renderHomepage();
 
@@ -484,7 +441,6 @@ async function archiveTrip(tripId) {
 
         if (error) throw error;
 
-        // Move locally from trips → pastTrips
         const trip = trips.find(t => t.id === tripId);
         if (trip) {
             trip.is_past = true;
@@ -517,28 +473,40 @@ async function openTrip(tripId) {
 
         currentTrip = trip;
 
-        // Load trip days
+        // Load trip days (photos + links)
         const { data: days, error: daysError } = await supabaseClient
             .from('trip_days')
-            .select(`
-                *,
-                day_photos (*),
-                day_links (*)
-            `)
+            .select(`*, day_photos (*), day_links (*)`)
             .eq('trip_id', tripId);
 
         if (daysError) throw daysError;
 
-        // Convert to the format expected by the frontend
         currentTrip.days = {};
         days.forEach(day => {
-            const dateKey = day.date;
-            currentTrip.days[dateKey] = {
-                notes: day.notes,
+            currentTrip.days[day.date] = {
+                notes: day.notes,       // legacy plain-text notes kept for compatibility
                 photos: day.day_photos.map(p => p.url),
                 links: day.day_links.map(l => l.url)
             };
         });
+
+        // ── Load rich notes from day_notes table ──
+        const { data: notesRows, error: notesError } = await supabaseClient
+            .from('day_notes')
+            .select('date, content, updated_at')
+            .eq('trip_id', tripId);
+
+        if (!notesError && notesRows) {
+            currentTrip.richNotes = {};
+            notesRows.forEach(row => {
+                currentTrip.richNotes[row.date] = {
+                    content: row.content,
+                    updatedAt: row.updated_at
+                };
+            });
+        } else {
+            currentTrip.richNotes = {};
+        }
 
         // Update UI
         const startDate = new Date(currentTrip.start_date);
@@ -548,7 +516,7 @@ async function openTrip(tripId) {
         document.getElementById('calendarTripTitle').textContent = currentTrip.destination;
         document.getElementById('sidebarTripTitle').textContent = currentTrip.destination;
         document.getElementById('tripDestinationText').textContent = currentTrip.destination;
-        
+
         const formattedDates = `${formatDate(new Date(currentTrip.start_date))} - ${formatDate(new Date(currentTrip.end_date))}`;
         document.getElementById('tripDates').textContent = formattedDates;
 
@@ -570,57 +538,68 @@ async function openTrip(tripId) {
 }
 
 // ============================================================================
-// DAY FUNCTIONS
+// DAY NOTES FUNCTIONS  (new day_notes table)
 // ============================================================================
 
-async function saveDayNotes() {
-    if (!selectedDate || !currentTrip) return;
-
-    const dateKey = getDateKey(selectedDate);
-    const notes = document.getElementById('dayNotes').value;
-
+/**
+ * Load the rich-text note for a single day.
+ * Returns the HTML content string, or '' if none exists yet.
+ */
+async function loadDayNotes(tripId, dateKey) {
     try {
-        // Check if day exists
-        const { data: existingDay, error: checkError } = await supabaseClient
-            .from('trip_days')
-            .select('id')
-            .eq('trip_id', currentTrip.id)
+        const { data, error } = await supabaseClient
+            .from('day_notes')
+            .select('content, updated_at')
+            .eq('trip_id', tripId)
             .eq('date', dateKey)
-            .single();
+            .maybeSingle();
 
-        if (checkError && checkError.code !== 'PGRST116') throw checkError;
-
-        if (existingDay) {
-            // Update existing day
-            const { error: updateError } = await supabaseClient
-                .from('trip_days')
-                .update({ notes: notes })
-                .eq('id', existingDay.id);
-
-            if (updateError) throw updateError;
-        } else {
-            // Create new day
-            const { error: insertError } = await supabaseClient
-                .from('trip_days')
-                .insert([{
-                    trip_id: currentTrip.id,
-                    date: dateKey,
-                    notes: notes
-                }]);
-
-            if (insertError) throw insertError;
-        }
-
-        if (!currentTrip.days[dateKey]) {
-            currentTrip.days[dateKey] = { notes: '', photos: [], links: [] };
-        }
-        currentTrip.days[dateKey].notes = notes;
-        
+        if (error) throw error;
+        return data ? { content: data.content || '', updatedAt: data.updated_at } : { content: '', updatedAt: null };
     } catch (error) {
-        console.error('Error saving notes:', error);
-        alert('Error saving notes. Please try again.');
+        console.error('Error loading day notes:', error);
+        return { content: '', updatedAt: null };
     }
 }
+
+/**
+ * Save (upsert) the rich-text note for a day.
+ * @param {string} tripId
+ * @param {string} dateKey  YYYY-MM-DD
+ * @param {string} content  HTML string from Tiptap
+ */
+async function saveDayNotes(tripId, dateKey, content) {
+    try {
+        const { error } = await supabaseClient
+            .from('day_notes')
+            .upsert(
+                {
+                    trip_id: tripId,
+                    date: dateKey,
+                    content: content,
+                    updated_at: new Date().toISOString()
+                },
+                { onConflict: 'trip_id,date' }
+            );
+
+        if (error) throw error;
+
+        // Keep local cache in sync
+        if (currentTrip && currentTrip.id === tripId) {
+            if (!currentTrip.richNotes) currentTrip.richNotes = {};
+            currentTrip.richNotes[dateKey] = { content, updatedAt: new Date().toISOString() };
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error saving day notes:', error);
+        throw error;
+    }
+}
+
+// ============================================================================
+// DAY FUNCTIONS  (legacy trip_days — photos & links)
+// ============================================================================
 
 async function addLink() {
     const input = document.getElementById('linkInput');
@@ -631,16 +610,11 @@ async function addLink() {
     const dateKey = getDateKey(selectedDate);
 
     try {
-        // Get or create day
         let dayId = await getOrCreateDay(currentTrip.id, dateKey);
 
-        // Insert link
         const { error } = await supabaseClient
             .from('day_links')
-            .insert([{
-                trip_day_id: dayId,
-                url: url
-            }]);
+            .insert([{ trip_day_id: dayId, url: url }]);
 
         if (error) throw error;
 
@@ -679,10 +653,7 @@ async function deleteLink(index) {
                 .order('created_at', { ascending: true });
 
             if (links && links[index]) {
-                await supabaseClient
-                    .from('day_links')
-                    .delete()
-                    .eq('id', links[index].id);
+                await supabaseClient.from('day_links').delete().eq('id', links[index].id);
             }
         }
 
@@ -708,7 +679,6 @@ async function saveMemory(event) {
     const notes = document.getElementById('memoryNotes').value;
 
     try {
-        // Resolve trip — may come from picker or freehand destination
         if (!currentMemoryTrip) {
             const picker = document.getElementById('addMemoryTripPicker');
             const pickerValue = picker?.value;
@@ -736,16 +706,13 @@ async function saveMemory(event) {
                     .select()
                     .single();
 
-                console.log('New trip insert:', newTrip, tripError);
                 if (tripError) throw tripError;
-
                 newTrip.memories = [];
                 pastTrips.unshift(newTrip);
                 window.currentMemoryTrip = newTrip;
             }
         }
 
-        console.log('Saving memory to trip:', currentMemoryTrip?.id, currentMemoryTrip?.destination);
         const { data: memory, error: memoryError } = await supabaseClient
             .from('memories')
             .insert([{
@@ -759,39 +726,25 @@ async function saveMemory(event) {
 
         if (memoryError) throw memoryError;
 
-        // Upload photos
         const photoPromises = currentMemoryPhotos.map(async (photo) => {
             const photoUrl = await uploadImage(photo.url, 'memory-photos');
-            
-            return supabaseClient
-                .from('memory_photos')
-                .insert([{
-                    memory_id: memory.id,
-                    url: photoUrl,
-                    latitude: photo.geoLocation?.lat,
-                    longitude: photo.geoLocation?.lng
-                }]);
+            return supabaseClient.from('memory_photos').insert([{
+                memory_id: memory.id,
+                url: photoUrl,
+                latitude: photo.geoLocation?.lat,
+                longitude: photo.geoLocation?.lng
+            }]);
         });
 
         await Promise.all(photoPromises);
 
-        // Update local data
-        if (!currentMemoryTrip.memories) {
-            currentMemoryTrip.memories = [];
-        }
-
-        currentMemoryTrip.memories.push({
-            date: date,
-            title: title,
-            notes: notes,
-            photos: currentMemoryPhotos
-        });
+        if (!currentMemoryTrip.memories) currentMemoryTrip.memories = [];
+        currentMemoryTrip.memories.push({ date, title, notes, photos: currentMemoryPhotos });
 
         closeModal('addMemoryModal');
         renderMemories();
         renderHomepage();
 
-        // If we're not on the memory journal page, clear so next open is fresh
         if (currentPage !== 'memoryJournalPage') {
             window.currentMemoryTrip = null;
         }
@@ -806,9 +759,6 @@ async function deleteMemory(index) {
     if (!confirm('Are you sure you want to delete this memory?')) return;
 
     try {
-        const memory = currentMemoryTrip.memories[index];
-        
-        // Get memory from database
         const { data: dbMemories } = await supabaseClient
             .from('memories')
             .select('id')
@@ -839,43 +789,29 @@ async function deleteMemory(index) {
 // ============================================================================
 
 function pad2(n) {
-  return String(n).padStart(2, '0');
+    return String(n).padStart(2, '0');
 }
 
-/**
- * Returns YYYY-MM-DD in local time (stable for Supabase dates).
- */
 function formatDate(dateLike) {
-  if (!dateLike) return '';
-  const d = (dateLike instanceof Date) ? dateLike : new Date(dateLike);
-  if (!isFinite(d)) return '';
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    if (!dateLike) return '';
+    const d = (dateLike instanceof Date) ? dateLike : new Date(dateLike);
+    if (!isFinite(d)) return '';
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
 async function uploadImage(base64Data, bucket) {
     try {
-        // Convert base64 to blob
         const response = await fetch(base64Data);
         const blob = await response.blob();
-        
-        // Generate unique filename
         const fileName = `${currentUser.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-        
-        // Upload to Supabase Storage
+
         const { data, error } = await supabaseClient.storage
             .from(bucket)
-            .upload(fileName, blob, {
-                contentType: 'image/jpeg',
-                upsert: false
-            });
+            .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false });
 
         if (error) throw error;
 
-        // Get public URL
-        const { data: { publicUrl } } = supabaseClient.storage
-            .from(bucket)
-            .getPublicUrl(fileName);
-
+        const { data: { publicUrl } } = supabaseClient.storage.from(bucket).getPublicUrl(fileName);
         return publicUrl;
         
     } catch (error) {
@@ -893,23 +829,15 @@ async function getOrCreateDay(tripId, date) {
         .single();
 
     if (checkError && checkError.code !== 'PGRST116') throw checkError;
-
-    if (existingDay) {
-        return existingDay.id;
-    }
+    if (existingDay) return existingDay.id;
 
     const { data: newDay, error: insertError } = await supabaseClient
         .from('trip_days')
-        .insert([{
-            trip_id: tripId,
-            date: date,
-            notes: ''
-        }])
+        .insert([{ trip_id: tripId, date: date, notes: '' }])
         .select('id')
         .single();
 
     if (insertError) throw insertError;
-
     return newDay.id;
 }
 
@@ -917,12 +845,10 @@ async function getOrCreateDay(tripId, date) {
 // FRIENDS & COLLABORATION FUNCTIONS
 // ============================================================================
 
-// ---------- State ----------
-let friends = [];           // accepted friends
-let friendRequests = [];    // pending incoming requests
-let currentTripCollaborators = []; // collaborators for currently open trip
+let friends = [];
+let friendRequests = [];
+let currentTripCollaborators = [];
 
-// ---------- Search for users by email ----------
 async function searchUserByEmail(email) {
     try {
         const { data, error } = await supabaseClient
@@ -940,10 +866,8 @@ async function searchUserByEmail(email) {
     }
 }
 
-// ---------- Send a friend request ----------
 async function sendFriendRequest(addresseeId) {
     try {
-        // Check if friendship already exists
         const { data: existing } = await supabaseClient
             .from('friendships')
             .select('id, status')
@@ -968,7 +892,6 @@ async function sendFriendRequest(addresseeId) {
     }
 }
 
-// ---------- Accept / Decline friend request ----------
 async function respondToFriendRequest(friendshipId, accept) {
     try {
         const { error } = await supabaseClient
@@ -977,8 +900,6 @@ async function respondToFriendRequest(friendshipId, accept) {
             .eq('id', friendshipId);
 
         if (error) throw error;
-
-        // Refresh friends list
         await loadFriends();
         renderFriendsPage();
     } catch (error) {
@@ -987,15 +908,10 @@ async function respondToFriendRequest(friendshipId, accept) {
     }
 }
 
-// ---------- Remove friend ----------
 async function removeFriend(friendshipId) {
     if (!confirm('Remove this friend?')) return;
     try {
-        const { error } = await supabaseClient
-            .from('friendships')
-            .delete()
-            .eq('id', friendshipId);
-
+        const { error } = await supabaseClient.from('friendships').delete().eq('id', friendshipId);
         if (error) throw error;
         await loadFriends();
         renderFriendsPage();
@@ -1004,7 +920,6 @@ async function removeFriend(friendshipId) {
     }
 }
 
-// ---------- Load friends + pending requests ----------
 async function loadFriends() {
     try {
         const { data, error } = await supabaseClient
@@ -1030,7 +945,6 @@ async function loadFriends() {
             .filter(f => f.status === 'pending' && f.addressee_id === currentUser.id)
             .map(f => ({ friendshipId: f.id, ...f.requester }));
 
-        // Show notification dot if there are pending requests
         const btn = document.getElementById('friendsNavBtn');
         if (btn) {
             const existing = btn.querySelector('.request-dot');
@@ -1047,23 +961,15 @@ async function loadFriends() {
     }
 }
 
-// ---------- Load collaborators for a trip ----------
 async function loadTripCollaborators(tripId) {
     try {
         const { data, error } = await supabaseClient
             .from('trip_collaborators')
-            .select(`
-                id, role,
-                user:profiles!trip_collaborators_user_id_fkey(id, name, email)
-            `)
+            .select(`id, role, user:profiles!trip_collaborators_user_id_fkey(id, name, email)`)
             .eq('trip_id', tripId);
 
         if (error) throw error;
-        currentTripCollaborators = (data || []).map(c => ({
-            collaboratorId: c.id,
-            role: c.role,
-            ...c.user
-        }));
+        currentTripCollaborators = (data || []).map(c => ({ collaboratorId: c.id, role: c.role, ...c.user }));
         return currentTripCollaborators;
     } catch (error) {
         console.error('Error loading collaborators:', error);
@@ -1071,7 +977,6 @@ async function loadTripCollaborators(tripId) {
     }
 }
 
-// ---------- Add a collaborator to a trip ----------
 async function addTripCollaborator(tripId, userId, role = 'editor') {
     try {
         const { error } = await supabaseClient
@@ -1088,15 +993,10 @@ async function addTripCollaborator(tripId, userId, role = 'editor') {
     }
 }
 
-// ---------- Remove a collaborator ----------
 async function removeTripCollaborator(collaboratorId, tripId) {
     if (!confirm('Remove this collaborator from the trip?')) return;
     try {
-        const { error } = await supabaseClient
-            .from('trip_collaborators')
-            .delete()
-            .eq('id', collaboratorId);
-
+        const { error } = await supabaseClient.from('trip_collaborators').delete().eq('id', collaboratorId);
         if (error) throw error;
         await loadTripCollaborators(tripId);
         renderCollaboratorsModal(tripId);
@@ -1105,15 +1005,11 @@ async function removeTripCollaborator(collaboratorId, tripId) {
     }
 }
 
-// ---------- Load shared trips (trips where user is a collaborator) ----------
 async function loadSharedTrips() {
     try {
         const { data, error } = await supabaseClient
             .from('trip_collaborators')
-            .select(`
-                role,
-                trip:trips(*)
-            `)
+            .select(`role, trip:trips(*)`)
             .eq('user_id', currentUser.id);
 
         if (error) throw error;
