@@ -1001,6 +1001,14 @@
     window._ppEditWeight = (catId, itemId) => _editWeight(catId, itemId, main);
     window._ppLoadTemplate = (tplId) => _loadTemplate(tplId, main);
     window._ppSaveTemplate = () => _saveAsTemplate(main);
+    window._ppClearList = () => {
+      if (confirm('Clear your entire packing list?')) {
+        _packingList = {};
+        window._packingList = _packingList;
+        _saveState(); _updateScoreBadge();
+        _renderPackingTab(document.getElementById('pp-main'));
+      }
+    };
   }
 
   function _aiBoxHTML() {
@@ -1095,6 +1103,7 @@
         ${builtins}
         ${saved}
         <button class="pp-template-btn save-tpl" onclick="_ppSaveTemplate()">💾 Save as Template</button>
+        ${Object.keys(_packingList).length > 0 ? `<button class="pp-template-btn" style="border-color:rgba(220,80,60,.25);color:rgba(220,80,60,.6);" onclick="_ppClearList()">🗑️ Clear List</button>` : ''}
       </div>
     `;
   }
@@ -1433,8 +1442,19 @@ Be specific and reference actual itinerary details. Keep it concise.`;
     }
     const tpl = TEMPLATES.find(t=>t.id===tplId);
     if (!tpl) return;
+  
     if (Object.keys(_packingList).length > 0) {
-      if (!confirm(`Load "${tpl.label}" template? This will add to your existing list.`)) return;
+      const choice = _showTemplateChoiceModal(tpl.label, () => {
+        // Replace
+        _packingList = {};
+        _applyTemplate(tpl);
+        _saveState(); _renderPackingTab(main); _updateScoreBadge();
+      }, () => {
+        // Merge
+        _applyTemplate(tpl);
+        _saveState(); _renderPackingTab(main); _updateScoreBadge();
+      });
+      return;
     }
     _applyTemplate(tpl);
     _saveState(); _renderPackingTab(main); _updateScoreBadge();
@@ -1460,6 +1480,62 @@ Be specific and reference actual itinerary details. Keep it concise.`;
     _savedTemplates.push({ id, label:name, emoji:'📋', data: JSON.parse(JSON.stringify(_packingList)) });
     _saveState(); _renderPackingTab(main);
   }
+  
+  function _showTemplateChoiceModal(tplLabel, onReplace, onMerge) {
+  // Remove any existing
+  document.getElementById('pp-tpl-modal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'pp-tpl-modal';
+  modal.style.cssText = `
+    position:fixed; inset:0; z-index:8000;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(8,6,4,.75); backdrop-filter:blur(6px);
+    animation:pp-fade .18s ease;
+  `;
+  modal.innerHTML = `
+    <div style="
+      background:#1a1916; border:1px solid rgba(232,213,183,.12);
+      border-radius:16px; padding:28px 28px 24px; max-width:360px; width:90%;
+      box-shadow:0 32px 80px rgba(0,0,0,.5);
+      animation:pp-up .28s cubic-bezier(.16,1,.3,1);
+    ">
+      <div style="font-family:'Fraunces',serif;font-size:18px;color:#f5efe6;margin-bottom:8px;">
+        Load "${tplLabel}"?
+      </div>
+      <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(232,213,183,.5);margin-bottom:22px;line-height:1.6;">
+        You already have a packing list. What would you like to do?
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <button id="pp-tpl-replace" style="
+          padding:11px 16px; border-radius:10px; border:1px solid rgba(217,119,87,.35);
+          background:rgba(217,119,87,.12); color:#d97757;
+          font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
+          cursor:pointer; text-align:left; transition:all .15s;
+        ">🔄 Replace — start fresh with this template</button>
+        <button id="pp-tpl-merge" style="
+          padding:11px 16px; border-radius:10px; border:1px solid rgba(232,213,183,.15);
+          background:rgba(232,213,183,.05); color:rgba(232,213,183,.7);
+          font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
+          cursor:pointer; text-align:left; transition:all .15s;
+        ">➕ Merge — add to my existing list</button>
+        <button id="pp-tpl-cancel" style="
+          padding:9px 16px; border-radius:10px; border:1px solid transparent;
+          background:transparent; color:rgba(232,213,183,.35);
+          font-family:'DM Sans',sans-serif; font-size:13px;
+          cursor:pointer; text-align:center; transition:all .15s;
+        ">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById('pp-tpl-replace').onclick = () => { modal.remove(); onReplace(); };
+  document.getElementById('pp-tpl-merge').onclick   = () => { modal.remove(); onMerge(); };
+  document.getElementById('pp-tpl-cancel').onclick  = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
 
   // ─────────────────────────────────────────────────────────────────────────
   // PACK-LIGHT SCORE
