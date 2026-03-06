@@ -6,9 +6,12 @@
 // Add this block to the very top of supabase-integration.js.
 (function () {
   const _getElementById = document.getElementById.bind(document);
+  const PP_IDS = new Set(['pp-overlay','pp-panel','pp-main','pp-tabs','pp-body','pp-topbar','pp-title','pp-subtitle','pp-score-badge','pp-score-val','pp-score-emoji','pp-close','pp-split-btn','pp-packed-btn','pp-share-btn','pp-score-modal','pp-score-modal-close','pp-itin-days']);
+  
   document.getElementById = function (id) {
-    const el = _getElementById(id);
-    if (el) return el;
+      if (PP_IDS.has(id)) return _getElementById(id);
+      const el = _getElementById(id);
+      if (el) return el;
     // Return a harmless stub — all property sets and method calls silently no-op.
     // _isStub: true lets calling code distinguish this from a real element.
     const stub = {
