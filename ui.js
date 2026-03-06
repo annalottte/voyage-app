@@ -1,4 +1,4 @@
-<!-- ui.js -->
+// ui.js
 // ===========================
 // UI STATE (no DB mutations)
 // ===========================
@@ -447,6 +447,10 @@ function openDayDetail() {
   renderPhotos(dayData.photos || []);
   renderLinks(dayData.links || []);
 
+  // ── Inject AI Day Ideas button ──────────────────────────────────────────────
+  injectAIDayButton(dayNumber);
+  // ───────────────────────────────────────────────────────────────────────────
+
   document.getElementById('dayDetailOverlay')?.classList.add('active');
 
   // Fetch weather for this day
@@ -456,8 +460,62 @@ function openDayDetail() {
   }
 }
 
+/**
+ * Injects (or refreshes) the AI Day Ideas button inside the day detail modal.
+ * Placed just above the Notes section so it's prominent but unobtrusive.
+ */
+function injectAIDayButton(dayNumber) {
+  // Remove any existing button first to avoid duplicates on re-open
+  document.getElementById('aiDayTipsBtn')?.remove();
+
+  // Only inject if the ai-day-tips module is loaded
+  if (typeof window.AIDayTips !== 'object') return;
+
+  const notesSection = document.getElementById('dayNotes');
+  if (!notesSection) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'aiDayTipsBtn';
+  btn.className = 'ai-tips-trigger';
+  btn.innerHTML = '<span class="sparkle">✦</span> AI Day Ideas';
+  btn.style.marginBottom = '14px';
+
+  btn.addEventListener('click', () => {
+    const destination = currentTrip?.destination || 'your destination';
+    const dateStr = selectedDate
+      ? selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : '';
+
+    window.AIDayTips.open(
+      destination,
+      dateStr,
+      dayNumber,
+      (formattedText) => {
+        // Save callback: append AI recommendations to the day notes
+        const notesEl = document.getElementById('dayNotes');
+        if (notesEl) {
+          notesEl.value = notesEl.value
+            ? notesEl.value + '\n\n' + formattedText
+            : formattedText;
+
+          // Trigger Supabase save if the autosave handler exists
+          if (typeof window.saveDayNotes === 'function') {
+            const dateKey = getDateKey(selectedDate);
+            window.saveDayNotes(currentTrip.id, dateKey, notesEl.value);
+          }
+        }
+      }
+    );
+  });
+
+  // Insert the button just before the notes textarea
+  notesSection.parentNode.insertBefore(btn, notesSection);
+}
+
 function closeDayDetail() {
   document.getElementById('dayDetailOverlay')?.classList.remove('active');
+  // Clean up the AI button so it doesn't linger
+  document.getElementById('aiDayTipsBtn')?.remove();
   renderCalendar();
 }
 
