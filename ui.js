@@ -14,6 +14,10 @@ let photoMap = null;
 let mapMarkers = [];
 let locationPhotoGroups = {};
 
+// Cached weather for the currently open day — passed to AIDayTips so it
+// doesn't need to re-fetch when the panel opens.
+let _lastFetchedWeather = null;
+
 function pad2(n) {
   return String(n).padStart(2, '0');
 }
@@ -441,11 +445,15 @@ function openDayDetail() {
   const dayNumber = start && isFinite(start) ? (Math.ceil((selectedDate - start) / (1000 * 60 * 60 * 24)) + 1) : null;
   if (subEl) subEl.textContent = dayNumber && dayNumber > 0 ? `Day ${dayNumber} of your trip` : 'Plan ahead';
 
-  const notesEl = document.getElementById('dayNotes');
-  if (notesEl) notesEl.value = dayData.notes || '';
+  // ── Render structured notes sections + AI card ──────────────────────────────
+  renderStructuredNotes(dayData.notes || '');
+  // ───────────────────────────────────────────────────────────────────────────
 
   renderPhotos(dayData.photos || []);
   renderLinks(dayData.links || []);
+
+  // Clear stale weather cache before fetching fresh data for this day
+  _lastFetchedWeather = null;
 
   // ── Inject AI Day Ideas button ──────────────────────────────────────────────
   injectAIDayButton(dayNumber);
@@ -460,9 +468,149 @@ function openDayDetail() {
   }
 }
 
+// ===========================
+// STRUCTURED NOTES
+// ===========================
+
+/**
+ * Notes are stored as JSON in the existing `notes` field.
+ * Format: { aiCard: {...}, morning: "...", afternoon: "...", evening: "..." }
+ * Falls back gracefully if the field contains plain text (legacy).
+ */
+function parseNotesData(raw) {
+  if (!raw) return { aiCard: null, morning: '', afternoon: '', evening: '' };
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === 'object' && !Array.isArray(parsed)) return {
+      aiCard: parsed.aiCard || null,
+      morning: parsed.morning || '',
+      afternoon: parsed.afternoon || '',
+      evening: parsed.evening || '',
+    };
+  } catch (e) {}
+  // Legacy plain text — put it all in morning
+  return { aiCard: null, morning: raw, afternoon: '', evening: '' };
+}
+
+function serializeNotesData() {
+  return JSON.stringify({
+    aiCard: window._currentDayAiCard || null,
+    morning:   (document.getElementById('dayNotesMorning')?.value   || '').trim(),
+    afternoon: (document.getElementById('dayNotesAfternoon')?.value || '').trim(),
+    evening:   (document.getElementById('dayNotesEvening')?.value   || '').trim(),
+  });
+}
+
+/**
+ * Renders the structured notes UI into #dayNotesContainer.
+ * Replaces the old single #dayNotes textarea.
+ */
+function renderStructuredNotes(rawNotes) {
+  const container = document.getElementById('dayNotesContainer');
+  if (!container) return;
+
+  const data = parseNotesData(rawNotes);
+  window._currentDayAiCard = data.aiCard || null;
+
+  const aiCardHtml = data.aiCard ? buildAiCardHtml(data.aiCard) : '';
+
+  container.innerHTML = `
+    ${aiCardHtml}
+    <div class="day-notes-sections">
+      <div class="day-notes-section">
+        <div class="day-notes-section-label">
+          <span class="day-notes-section-icon">🌅</span> Morning
+        </div>
+        <textarea
+          id="dayNotesMorning"
+          class="day-notes-textarea"
+          placeholder="Breakfast spots, early sights, morning plans…"
+          rows="3"
+          oninput="scheduleDayNotesSave()"
+        >${escapeHtml(data.morning)}</textarea>
+      </div>
+      <div class="day-notes-section">
+        <div class="day-notes-section-label">
+          <span class="day-notes-section-icon">☀️</span> Afternoon
+        </div>
+        <textarea
+          id="dayNotesAfternoon"
+          class="day-notes-textarea"
+          placeholder="Museums, markets, activities, lunch…"
+          rows="3"
+          oninput="scheduleDayNotesSave()"
+        >${escapeHtml(data.afternoon)}</textarea>
+      </div>
+      <div class="day-notes-section">
+        <div class="day-notes-section-label">
+          <span class="day-notes-section-icon">🌙</span> Evening
+        </div>
+        <textarea
+          id="dayNotesEvening"
+          class="day-notes-textarea"
+          placeholder="Dinner reservations, nightlife, wind-down…"
+          rows="3"
+          oninput="scheduleDayNotesSave()"
+        >${escapeHtml(data.evening)}</textarea>
+      </div>
+    </div>
+  `;
+}
+
+function buildAiCardHtml(card) {
+  if (!card) return '';
+  const activitiesHtml = (card.activities || []).map(a => `
+    <div class="ai-saved-activity">
+      <span class="ai-saved-activity-emoji">${a.emoji || '📍'}</span>
+      <div>
+        <div class="ai-saved-activity-time">${a.time || ''}</div>
+        <div class="ai-saved-activity-title">${a.title || ''}</div>
+        ${a.description ? `<div class="ai-saved-activity-desc">${a.description}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="ai-saved-card" id="aiSavedCard">
+      <div class="ai-saved-card-header">
+        <div class="ai-saved-card-label">✦ AI Day Plan</div>
+        <button class="ai-saved-card-dismiss" onclick="dismissAiCard()" title="Dismiss">×</button>
+      </div>
+      <div class="ai-saved-card-headline">"${card.headline || ''}"</div>
+      ${card.intro ? `<div class="ai-saved-card-intro">${card.intro}</div>` : ''}
+      ${activitiesHtml ? `<div class="ai-saved-activities">${activitiesHtml}</div>` : ''}
+      ${card.localTip ? `
+        <div class="ai-saved-tip">
+          <span>📍</span> ${card.localTip}
+        </div>` : ''}
+    </div>
+  `;
+}
+
+function dismissAiCard() {
+  window._currentDayAiCard = null;
+  document.getElementById('aiSavedCard')?.remove();
+  scheduleDayNotesSave();
+}
+
+function escapeHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let _notesSaveTimer = null;
+function scheduleDayNotesSave() {
+  clearTimeout(_notesSaveTimer);
+  _notesSaveTimer = setTimeout(() => {
+    if (typeof window.saveDayNotes === 'function' && selectedDate && currentTrip) {
+      const dateKey = getDateKey(selectedDate);
+      window.saveDayNotes(currentTrip.id, dateKey, serializeNotesData());
+    }
+  }, 800);
+}
+
 /**
  * Injects (or refreshes) the AI Day Ideas button inside the day detail modal.
- * Placed just above the Notes section so it's prominent but unobtrusive.
+ * Placed just above the Notes sections.
  */
 function injectAIDayButton(dayNumber) {
   // Remove any existing button first to avoid duplicates on re-open
@@ -471,8 +619,8 @@ function injectAIDayButton(dayNumber) {
   // Only inject if the ai-day-tips module is loaded
   if (typeof window.AIDayTips !== 'object') return;
 
-  const notesSection = document.getElementById('dayNotes');
-  if (!notesSection) return;
+  const notesContainer = document.getElementById('dayNotesContainer');
+  if (!notesContainer) return;
 
   const btn = document.createElement('button');
   btn.id = 'aiDayTipsBtn';
@@ -490,32 +638,31 @@ function injectAIDayButton(dayNumber) {
       destination,
       dateStr,
       dayNumber,
-      (formattedText) => {
-        // Save callback: append AI recommendations to the day notes
-        const notesEl = document.getElementById('dayNotes');
-        if (notesEl) {
-          notesEl.value = notesEl.value
-            ? notesEl.value + '\n\n' + formattedText
-            : formattedText;
+      (formattedText, rawData) => {
+        // Store the raw AI data as the card and re-render
+        window._currentDayAiCard = rawData || null;
+        renderStructuredNotes(serializeNotesData());
 
-          // Trigger Supabase save if the autosave handler exists
-          if (typeof window.saveDayNotes === 'function') {
-            const dateKey = getDateKey(selectedDate);
-            window.saveDayNotes(currentTrip.id, dateKey, notesEl.value);
-          }
+        // Trigger Supabase save
+        if (typeof window.saveDayNotes === 'function') {
+          const dateKey = getDateKey(selectedDate);
+          window.saveDayNotes(currentTrip.id, dateKey, serializeNotesData());
         }
-      }
+      },
+      _lastFetchedWeather   // pre-fetched weather — avoids a second geocode call
     );
   });
 
-  // Insert the button just before the notes textarea
-  notesSection.parentNode.insertBefore(btn, notesSection);
+  // Insert the button just before the notes container
+  notesContainer.parentNode.insertBefore(btn, notesContainer);
 }
 
 function closeDayDetail() {
   document.getElementById('dayDetailOverlay')?.classList.remove('active');
-  // Clean up the AI button so it doesn't linger
+  // Clean up the AI button and card state so they don't linger
   document.getElementById('aiDayTipsBtn')?.remove();
+  window._currentDayAiCard = null;
+  clearTimeout(_notesSaveTimer);
   renderCalendar();
 }
 
@@ -1051,9 +1198,20 @@ async function fetchWeatherForDay(destination, dateStr) {
       </div>
     `;
 
+    // Cache for AIDayTips so it doesn't need to re-fetch
+    _lastFetchedWeather = {
+      description:   desc,
+      icon:          icon,
+      tempMax:       tmax,
+      tempMin:       tmin,
+      precipitation: precip ?? 0,
+      windSpeed:     wind,
+    };
+
   } catch (err) {
     console.warn('Weather fetch failed:', err);
     widget.innerHTML = `<div class="weather-unavailable">🌡️ Could not load weather for this destination.</div>`;
+    _lastFetchedWeather = null;
   }
 }
 
