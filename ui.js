@@ -25,6 +25,7 @@ function pad2(n) {
 /**
  * Canonical YYYY-MM-DD key in local time.
  * Matches what your Supabase tables expect and what you store in currentTrip.days.
+ * IMPORTANT: always use this — never toISOString() which gives UTC and can shift the date.
  */
 function getDateKey(dateLike) {
   if (!dateLike) return '';
@@ -57,10 +58,6 @@ function goToHomepage() {
   showPage('homepage');
 }
 
-// ===========================
-// HOMEPAGE (UI-only)
-// Reads `trips`, `pastTrips` from supabase-integration.js
-// ===========================
 // ===========================
 // HOMEPAGE (UI-only)
 // Reads `trips`, `pastTrips` from supabase-integration.js
@@ -111,7 +108,6 @@ function renderHomepage() {
     });
     const hero = sorted.find(t => {
       const d = daysUntil(t.start_date || t.startDate);
-      const e = daysUntil(t.end_date   || t.endDate);
       return d > -365; // anything within past year or future
     });
 
@@ -141,7 +137,6 @@ function renderHomepage() {
         <div class="hp-hero-open-btn">→</div>
       `;
     } else {
-      // No trips — keep the empty state already in HTML
       heroEl.innerHTML = `
         <div class="hp-hero-placeholder"></div>
         <div class="hp-hero-overlay"></div>
@@ -248,7 +243,6 @@ document.addEventListener('click', () => {
 
 function toggleCardMenu(event, tripId, isPast) {
   event.stopPropagation();
-  // Remove any existing dropdown
   document.querySelectorAll('.trip-card-dropdown').forEach(d => d.remove());
 
   const btn = event.currentTarget;
@@ -276,7 +270,6 @@ function toggleCardMenu(event, tripId, isPast) {
   card.style.position = 'relative';
   card.appendChild(menu);
 
-  // Position it near the button
   const btnRect = btn.getBoundingClientRect();
   const cardRect = card.getBoundingClientRect();
   menu.style.top  = (btnRect.bottom - cardRect.top + 4) + 'px';
@@ -286,7 +279,6 @@ function toggleCardMenu(event, tripId, isPast) {
 
 // Ensure only one page is visible on first load
 document.addEventListener('DOMContentLoaded', () => {
-  // If no page has .active yet, default to loginPage
   const anyActive = document.querySelector('.page.active');
   if (!anyActive) showPage('loginPage');
 });
@@ -299,7 +291,7 @@ function openMemoryJournal(tripId) {
   const trip = pastTrips.find(t => t.id === tripId);
   if (!trip) return;
 
-  window.currentMemoryTrip = trip; // Supabase owns data; UI reads from here
+  window.currentMemoryTrip = trip;
 
   const nameEl  = document.getElementById('memoryTripName');
   const datesEl = document.getElementById('memoryTripDates');
@@ -375,7 +367,6 @@ function renderMemories() {
 }
 
 function openAddMemoryModal(tripId) {
-  // If called with a specific tripId, pre-select that trip
   if (tripId) {
     const trip = (pastTrips || []).find(t => t.id === tripId);
     if (trip) window.currentMemoryTrip = trip;
@@ -390,12 +381,10 @@ function openAddMemoryModal(tripId) {
   const freehandGroup = document.getElementById('addMemoryFreehandGroup');
 
   if (window.currentMemoryTrip) {
-    // Trip already known — hide picker & freehand, show label
     if (pickerGroup) pickerGroup.style.display = 'none';
     if (freehandGroup) freehandGroup.style.display = 'none';
     if (label) label.textContent = `Adding to: ${currentMemoryTrip.destination}`;
   } else {
-    // Show trip picker (existing trips) + freehand option
     if (picker) {
       picker.innerHTML = '<option value="">— Choose an existing trip —</option>';
       (pastTrips || []).forEach(t => {
@@ -404,7 +393,6 @@ function openAddMemoryModal(tripId) {
         opt.textContent = t.destination;
         picker.appendChild(opt);
       });
-      // Add a "new destination" option at the bottom
       const newOpt = document.createElement('option');
       newOpt.value = '__new__';
       newOpt.textContent = '✏️ Enter a new destination…';
@@ -522,7 +510,7 @@ function renderCalendar() {
   grid.innerHTML = '';
   weekdayEls.forEach(d => grid.appendChild(d));
 
-  const firstDow = firstDay.getDay(); // 0 = Sun
+  const firstDow = firstDay.getDay();
   for (let i = firstDow - 1; i >= 0; i--) {
     const day = prevLast.getDate() - i;
     grid.appendChild(createDayCell(day, true, currentDate.getMonth() - 1));
@@ -535,7 +523,6 @@ function renderCalendar() {
     grid.appendChild(createDayCell(day, true, currentDate.getMonth() + 1));
   }
 
-  // Update right panel stats whenever calendar re-renders
   if (typeof updateRightPanel === 'function') updateRightPanel();
 }
 
@@ -557,7 +544,6 @@ function createDayCell(day, otherMonth, month) {
   const hasLinks    = !!(dayData?.links?.length);
   const hasContent  = hasNotes || hasPhotos || hasLinks;
 
-  // Check if this date falls within the trip range
   const tripStart = (typeof currentTrip !== 'undefined') && currentTrip?.start_date
     ? new Date(currentTrip.start_date + 'T00:00:00') : null;
   const tripEnd   = (typeof currentTrip !== 'undefined') && currentTrip?.end_date
@@ -594,17 +580,14 @@ function createDayCell(day, otherMonth, month) {
   } else if (dayData?.notes) {
     previewText = dayData.notes;
   }
-  // Trim to a short snippet
   previewText = previewText.replace(/\n/g, ' ').trim().substring(0, 38);
   if (previewText.length === 38) previewText += '…';
 
-  // Content-type pills
   const pills = [];
   if (hasNotes)  pills.push('<span class="day-pill day-pill-notes">📝</span>');
   if (hasPhotos) pills.push(`<span class="day-pill day-pill-photos">📸 ${dayData.photos.length}</span>`);
   if (hasLinks)  pills.push(`<span class="day-pill day-pill-links">🔗 ${dayData.links.length}</span>`);
 
-  // Trip-range label on start/end days
   const tripLabel = isTripStart
     ? '<div class="trip-range-label trip-range-start">Depart</div>'
     : isTripEnd
@@ -632,10 +615,8 @@ function selectDate(day) {
 
 function updateDetailsPanel() {
   if (!selectedDate) return;
-  // Update countdown chip on calendar page
   if (typeof currentTrip !== 'undefined' && currentTrip) {
     const chip = document.getElementById('calCountdownChip');
-    const meta = document.getElementById('calendarTripMeta');
     if (chip) {
       const cd = countdownLabel(currentTrip);
       if (cd && cd.cls !== 'past') {
@@ -680,7 +661,6 @@ function openDayDetail() {
   // ── FIX: prefer richNotes (day_notes table) over legacy notes (trip_days table) ──
   const richContent = currentTrip.richNotes?.[dateKey]?.content || dayData.notes || '';
   renderStructuredNotes(richContent);
-  // ───────────────────────────────────────────────────────────────────────────────
 
   renderPhotos(dayData.photos || []);
   renderLinks(dayData.links || []);
@@ -690,7 +670,6 @@ function openDayDetail() {
 
   // ── Inject AI Day Ideas button ──────────────────────────────────────────────
   injectAIDayButton(dayNumber);
-  // ───────────────────────────────────────────────────────────────────────────
 
   const _ddoA = document.getElementById('dayDetailOverlay'); if (_ddoA && !_ddoA._isStub) _ddoA.classList.add('active');
 
@@ -734,9 +713,6 @@ function serializeNotesData() {
   });
 }
 
-/**
- * Renders the structured notes UI into #dayNotesContainer.
- */
 function renderStructuredNotes(rawNotes) {
   const container = document.getElementById('dayNotesContainer');
   if (!container) return;
@@ -841,15 +817,18 @@ function scheduleDayNotesSave() {
 }
 
 /**
- * Injects (or refreshes) the AI Day Ideas button inside the day detail modal.
- * Placed just above the Notes sections.
+ * Injects (or refreshes) the AI Day Ideas button + vibe input inside the day detail modal.
+ *
+ * Clicking the button shows an inline vibe input row.
+ * Pressing Enter or clicking "Get Ideas →" passes the vibe text to AIDayTips.open()
+ * as the 6th `userPrefs` argument.
  */
 function injectAIDayButton(dayNumber) {
-  // Remove any existing button first to avoid duplicates on re-open
-  const existing = document.getElementById('aiDayTipsBtn');
-  if (existing && !existing._isStub && typeof existing.remove === 'function') {
-    existing.remove();
-  }
+  // Remove any stale elements first to avoid duplicates on re-open
+  ['aiDayTipsBtn', 'aiVibePrompt'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el._isStub) el.remove();
+  });
 
   // Only inject if the ai-day-tips module is loaded
   if (typeof window.AIDayTips !== 'object') return;
@@ -857,13 +836,62 @@ function injectAIDayButton(dayNumber) {
   const notesContainer = document.getElementById('dayNotesContainer');
   if (!notesContainer) return;
 
+  // ── Button ──────────────────────────────────────────────────────────────
   const btn = document.createElement('button');
   btn.id = 'aiDayTipsBtn';
   btn.className = 'ai-tips-trigger';
   btn.innerHTML = '<span class="sparkle">✦</span> AI Day Ideas';
   btn.style.marginBottom = '14px';
 
+  // ── Vibe prompt card ─────────────────────────────────────────────────────
+  const promptEl = document.createElement('div');
+  promptEl.id = 'aiVibePrompt';
+  promptEl.style.cssText = `
+    display:none;
+    margin-bottom:14px;
+    background:linear-gradient(135deg,#0d0d1a 0%,#16213e 100%);
+    border:1px solid rgba(201,169,110,0.25);
+    border-radius:12px;
+    padding:14px 16px;
+    animation:fadeIn 0.2s ease;
+  `;
+  promptEl.innerHTML = `
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(201,169,110,0.7);margin-bottom:8px;">✦ What's your vibe today?</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input
+        id="aiVibeInput"
+        type="text"
+        placeholder="e.g. I want to drink a local beer, find a beach…"
+        style="flex:1;padding:9px 12px;border-radius:8px;border:1px solid rgba(201,169,110,0.2);background:rgba(255,255,255,0.05);color:#e8d5b7;font-size:13px;font-family:inherit;outline:none;transition:border-color 0.2s;"
+        onfocus="this.style.borderColor='rgba(201,169,110,0.45)'"
+        onblur="this.style.borderColor='rgba(201,169,110,0.2)'"
+      >
+      <button id="aiVibeGo" style="padding:9px 14px;background:rgba(201,169,110,0.2);border:1px solid rgba(201,169,110,0.3);border-radius:8px;color:#e8d5b7;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s;"
+        onmouseover="this.style.background='rgba(201,169,110,0.35)'"
+        onmouseout="this.style.background='rgba(201,169,110,0.2)'"
+      >Get Ideas →</button>
+    </div>
+    <div style="font-size:11px;color:rgba(232,213,183,0.4);margin-top:6px;">Optional — leave blank for general suggestions</div>
+  `;
+
+  // Insert both before the notes container
+  notesContainer.parentNode.insertBefore(btn, notesContainer);
+  notesContainer.parentNode.insertBefore(promptEl, notesContainer);
+
+  // ── Wire up button click → show/hide prompt ──────────────────────────────
   btn.addEventListener('click', () => {
+    const isVisible = promptEl.style.display !== 'none';
+    promptEl.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+      setTimeout(() => document.getElementById('aiVibeInput')?.focus(), 50);
+    }
+  });
+
+  // ── Wire up "Get Ideas" button ────────────────────────────────────────────
+  function launchAI() {
+    const userPrefs = (document.getElementById('aiVibeInput')?.value || '').trim();
+    promptEl.style.display = 'none';
+
     const destination = currentTrip?.destination || 'your destination';
     const dateStr = selectedDate
       ? selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -884,34 +912,37 @@ function injectAIDayButton(dayNumber) {
           window.saveDayNotes(currentTrip.id, dateKey, serializeNotesData());
         }
       },
-      _lastFetchedWeather   // pre-fetched weather — avoids a second geocode call
+      _lastFetchedWeather,  // pre-fetched weather — avoids a second geocode call
+      userPrefs             // ← vibe / user request passed to AIDayTips
     );
-  });
+  }
 
-  // Insert the button just before the notes container
-  notesContainer.parentNode.insertBefore(btn, notesContainer);
+  document.getElementById('aiVibeGo').addEventListener('click', launchAI);
+
+  // Allow Enter key in the vibe input to trigger launch
+  document.getElementById('aiVibeInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); launchAI(); }
+  });
 }
 
 function closeDayDetail() {
   const _ddo = document.getElementById('dayDetailOverlay'); if (_ddo && !_ddo._isStub) _ddo.classList.remove('active');
-  // Clean up the AI button and card state so they don't linger
-  const _adt = document.getElementById('aiDayTipsBtn'); if (_adt && !_adt._isStub) _adt.remove();
+  // Clean up AI button, vibe prompt, and card state
+  ['aiDayTipsBtn', 'aiVibePrompt'].forEach(id => {
+    const el = document.getElementById(id); if (el && !el._isStub) el.remove();
+  });
   window._currentDayAiCard = null;
   clearTimeout(_notesSaveTimer);
   renderCalendar();
 }
 
-// Delegators — implement in Supabase file if you want persistence now
+// Delegators — implement in Supabase file if you want persistence
 function handlePhotoUpload(event) {
-  if (typeof window.handleDayPhotoUpload === 'function') {
-    return window.handleDayPhotoUpload(event);
-  }
+  if (typeof window.handleDayPhotoUpload === 'function') return window.handleDayPhotoUpload(event);
   console.warn('Day photo upload not wired to Supabase yet.');
 }
 function deletePhoto(index) {
-  if (typeof window.deleteDayPhoto === 'function') {
-    return window.deleteDayPhoto(index);
-  }
+  if (typeof window.deleteDayPhoto === 'function') return window.deleteDayPhoto(index);
   console.warn('Day photo delete not wired to Supabase yet.');
 }
 
@@ -953,7 +984,7 @@ function renderLinks(links) {
 }
 
 // ===========================
-// CREATE TRIP MODAL (UI-only, previews)
+// CREATE TRIP MODAL (UI-only)
 // ===========================
 function openCreateTripModal() {
   const overlay = document.getElementById('createTripModal');
@@ -977,10 +1008,7 @@ function handleTripImageUpload(event) {
   reader.onload = e => {
     currentTripImageData = e.target.result;
     const preview = document.getElementById('tripImagePreview');
-    if (preview) {
-      preview.src = currentTripImageData;
-      preview.style.display = 'block';
-    }
+    if (preview) { preview.src = currentTripImageData; preview.style.display = 'block'; }
     const textEl = document.getElementById('tripImageUploadText');
     if (textEl) textEl.textContent = '✓ Cover image uploaded';
   };
@@ -994,10 +1022,7 @@ function handleTripHeaderUpload(event) {
   reader.onload = e => {
     currentTripHeaderData = e.target.result;
     const preview = document.getElementById('tripHeaderPreview');
-    if (preview) {
-      preview.src = currentTripHeaderData;
-      preview.style.display = 'block';
-    }
+    if (preview) { preview.src = currentTripHeaderData; preview.style.display = 'block'; }
     const textEl = document.getElementById('tripHeaderUploadText');
     if (textEl) textEl.textContent = '✓ Header image uploaded';
   };
@@ -1045,13 +1070,10 @@ function initializePhotoMap() {
         const geo = p.geoLocation;
         if (geo && typeof geo.lat === 'number' && typeof geo.lng === 'number') {
           const key = `${geo.lat.toFixed(4)},${geo.lng.toFixed(4)}`;
-          if (!locationPhotoGroups[key]) {
-            locationPhotoGroups[key] = { lat: geo.lat, lng: geo.lng, photos: [] };
-          }
+          if (!locationPhotoGroups[key]) locationPhotoGroups[key] = { lat: geo.lat, lng: geo.lng, photos: [] };
           locationPhotoGroups[key].photos.push({
             url: typeof p === 'string' ? p : p.url,
-            date: mem.date,
-            title: mem.title
+            date: mem.date, title: mem.title
           });
         }
       });
@@ -1061,11 +1083,7 @@ function initializePhotoMap() {
   const bounds = [];
   Object.entries(locationPhotoGroups).forEach(([key, loc]) => {
     const marker = L.marker([loc.lat, loc.lng], {
-      icon: L.divIcon({
-        className: 'map-marker',
-        html: `<div class="map-marker">${loc.photos.length}</div>`,
-        iconSize: [40, 40]
-      })
+      icon: L.divIcon({ className: 'map-marker', html: `<div class="map-marker">${loc.photos.length}</div>`, iconSize: [40, 40] })
     }).addTo(photoMap);
     marker.on('click', () => openLocationPhotos(key));
     mapMarkers.push(marker);
@@ -1093,14 +1111,10 @@ function openLocationPhotos(locationKey) {
       const label = isFinite(d) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
       const item = document.createElement('div');
       item.className = 'location-photo-item';
-      item.innerHTML = `
-        <img src="${p.url}" alt="${p.title || 'Memory'}">
-        <div class="location-photo-date">${label}</div>
-      `;
+      item.innerHTML = `<img src="${p.url}" alt="${p.title || 'Memory'}"><div class="location-photo-date">${label}</div>`;
       grid.appendChild(item);
     });
   }
-
   document.getElementById('locationPhotosOverlay')?.classList.add('active');
 }
 
@@ -1114,15 +1128,12 @@ function closeLocationPhotos() {
 async function extractGeoLocation(file) {
   return new Promise(resolve => {
     EXIF.getData(file, function () {
-      const lat   = EXIF.getTag(this, 'GPSLatitude');
-      const lng   = EXIF.getTag(this, 'GPSLongitude');
-      const latR  = EXIF.getTag(this, 'GPSLatitudeRef');
-      const lngR  = EXIF.getTag(this, 'GPSLongitudeRef');
-      if (lat && lng) {
-        resolve({ lat: convertDMSToDD(lat, latR), lng: convertDMSToDD(lng, lngR) });
-      } else {
-        resolve(null);
-      }
+      const lat = EXIF.getTag(this, 'GPSLatitude');
+      const lng = EXIF.getTag(this, 'GPSLongitude');
+      const latR = EXIF.getTag(this, 'GPSLatitudeRef');
+      const lngR = EXIF.getTag(this, 'GPSLongitudeRef');
+      if (lat && lng) resolve({ lat: convertDMSToDD(lat, latR), lng: convertDMSToDD(lng, lngR) });
+      else resolve(null);
     });
   });
 }
@@ -1142,188 +1153,177 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
     if (e.target === this) this.classList.remove('active');
   });
 });
-const _ddoEv = document.getElementById('dayDetailOverlay'); if (_ddoEv && !_ddoEv._isStub) _ddoEv.addEventListener('click', function (e) {
+const _ddoEv = document.getElementById('dayDetailOverlay');
+if (_ddoEv && !_ddoEv._isStub) _ddoEv.addEventListener('click', function (e) {
   if (e.target === this) closeDayDetail();
 });
 
 // ===========================
 // FRIENDS PAGE (UI)
 // ===========================
-
 function openFriendsPage() {
-    renderFriendsPage();
-    document.getElementById('friendsPage')?.classList.add('active-overlay');
+  renderFriendsPage();
+  document.getElementById('friendsPage')?.classList.add('active-overlay');
 }
 
 function closeFriendsPage() {
-    document.getElementById('friendsPage')?.classList.remove('active-overlay');
+  document.getElementById('friendsPage')?.classList.remove('active-overlay');
 }
 
 function renderFriendsPage() {
-    // Pending requests
-    const reqContainer = document.getElementById('friendRequestsList');
-    if (reqContainer) {
-        if (!friendRequests?.length) {
-            reqContainer.innerHTML = '<p class="friends-empty">No pending requests</p>';
-        } else {
-            reqContainer.innerHTML = friendRequests.map(r => `
-                <div class="friend-card">
-                    <div class="friend-avatar">${(r.name || '?')[0].toUpperCase()}</div>
-                    <div class="friend-info">
-                        <div class="friend-name">${r.name || 'Unknown'}</div>
-                        <div class="friend-email">${r.email || ''}</div>
-                    </div>
-                    <div class="friend-actions">
-                        <button class="friend-btn friend-btn-accept" onclick="respondToFriendRequest('${r.friendshipId}', true)">Accept</button>
-                        <button class="friend-btn friend-btn-decline" onclick="respondToFriendRequest('${r.friendshipId}', false)">Decline</button>
-                    </div>
-                </div>
-            `).join('');
-        }
+  const reqContainer = document.getElementById('friendRequestsList');
+  if (reqContainer) {
+    if (!friendRequests?.length) {
+      reqContainer.innerHTML = '<p class="friends-empty">No pending requests</p>';
+    } else {
+      reqContainer.innerHTML = friendRequests.map(r => `
+        <div class="friend-card">
+          <div class="friend-avatar">${(r.name || '?')[0].toUpperCase()}</div>
+          <div class="friend-info">
+            <div class="friend-name">${r.name || 'Unknown'}</div>
+            <div class="friend-email">${r.email || ''}</div>
+          </div>
+          <div class="friend-actions">
+            <button class="friend-btn friend-btn-accept" onclick="respondToFriendRequest('${r.friendshipId}', true)">Accept</button>
+            <button class="friend-btn friend-btn-decline" onclick="respondToFriendRequest('${r.friendshipId}', false)">Decline</button>
+          </div>
+        </div>
+      `).join('');
     }
+  }
 
-    // Friends list
-    const friendsContainer = document.getElementById('friendsList');
-    if (friendsContainer) {
-        if (!friends?.length) {
-            friendsContainer.innerHTML = '<p class="friends-empty">No friends yet — search for someone above!</p>';
-        } else {
-            friendsContainer.innerHTML = friends.map(f => `
-                <div class="friend-card">
-                    <div class="friend-avatar">${(f.name || '?')[0].toUpperCase()}</div>
-                    <div class="friend-info">
-                        <div class="friend-name">${f.name || 'Unknown'}</div>
-                        <div class="friend-email">${f.email || ''}</div>
-                    </div>
-                    <div class="friend-actions">
-                        <button class="friend-btn friend-btn-remove" onclick="removeFriend('${f.friendshipId}')">Remove</button>
-                    </div>
-                </div>
-            `).join('');
-        }
+  const friendsContainer = document.getElementById('friendsList');
+  if (friendsContainer) {
+    if (!friends?.length) {
+      friendsContainer.innerHTML = '<p class="friends-empty">No friends yet — search for someone above!</p>';
+    } else {
+      friendsContainer.innerHTML = friends.map(f => `
+        <div class="friend-card">
+          <div class="friend-avatar">${(f.name || '?')[0].toUpperCase()}</div>
+          <div class="friend-info">
+            <div class="friend-name">${f.name || 'Unknown'}</div>
+            <div class="friend-email">${f.email || ''}</div>
+          </div>
+          <div class="friend-actions">
+            <button class="friend-btn friend-btn-remove" onclick="removeFriend('${f.friendshipId}')">Remove</button>
+          </div>
+        </div>
+      `).join('');
     }
+  }
 }
 
 async function handleFriendSearch() {
-    const input = document.getElementById('friendSearchInput');
-    const results = document.getElementById('friendSearchResults');
-    if (!input || !results) return;
+  const input = document.getElementById('friendSearchInput');
+  const results = document.getElementById('friendSearchResults');
+  if (!input || !results) return;
 
-    const email = input.value.trim();
-    if (!email) { results.innerHTML = ''; return; }
+  const email = input.value.trim();
+  if (!email) { results.innerHTML = ''; return; }
 
-    results.innerHTML = '<p style="color: var(--text-tertiary); font-size: 13px;">Searching…</p>';
-    const users = await searchUserByEmail(email);
+  results.innerHTML = '<p style="color: var(--text-tertiary); font-size: 13px;">Searching…</p>';
+  const users = await searchUserByEmail(email);
 
-    if (!users.length) {
-        results.innerHTML = '<p class="friends-empty">No users found with that email.</p>';
-        return;
-    }
+  if (!users.length) {
+    results.innerHTML = '<p class="friends-empty">No users found with that email.</p>';
+    return;
+  }
 
-    const friendIds = new Set([
-        ...(friends || []).map(f => f.id),
-        currentUser?.id
-    ]);
+  const friendIds = new Set([...(friends || []).map(f => f.id), currentUser?.id]);
 
-    results.innerHTML = users.map(u => `
-        <div class="friend-card">
-            <div class="friend-avatar">${(u.name || '?')[0].toUpperCase()}</div>
-            <div class="friend-info">
-                <div class="friend-name">${u.name || 'Unknown'}</div>
-                <div class="friend-email">${u.email || ''}</div>
-            </div>
-            <div class="friend-actions">
-                ${friendIds.has(u.id)
-                    ? '<span style="font-size:12px;color:var(--text-tertiary)">Already friends</span>'
-                    : `<button class="friend-btn friend-btn-add" onclick="sendFriendRequest('${u.id}')">+ Add Friend</button>`
-                }
-            </div>
-        </div>
-    `).join('');
+  results.innerHTML = users.map(u => `
+    <div class="friend-card">
+      <div class="friend-avatar">${(u.name || '?')[0].toUpperCase()}</div>
+      <div class="friend-info">
+        <div class="friend-name">${u.name || 'Unknown'}</div>
+        <div class="friend-email">${u.email || ''}</div>
+      </div>
+      <div class="friend-actions">
+        ${friendIds.has(u.id)
+          ? '<span style="font-size:12px;color:var(--text-tertiary)">Already friends</span>'
+          : `<button class="friend-btn friend-btn-add" onclick="sendFriendRequest('${u.id}')">+ Add Friend</button>`
+        }
+      </div>
+    </div>
+  `).join('');
 }
 
 // ===========================
 // COLLABORATORS MODAL (UI)
 // ===========================
-
 async function openCollaboratorsModal(tripId) {
-    const modal = document.getElementById('collaboratorsModal');
-    if (!modal) return;
-
-    modal.dataset.tripId = tripId;
-    modal.classList.add('active');
-
-    // Load current collaborators
-    await loadTripCollaborators(tripId);
-    renderCollaboratorsModal(tripId);
+  const modal = document.getElementById('collaboratorsModal');
+  if (!modal) return;
+  modal.dataset.tripId = tripId;
+  modal.classList.add('active');
+  await loadTripCollaborators(tripId);
+  renderCollaboratorsModal(tripId);
 }
 
 function closeCollaboratorsModal() {
-    document.getElementById('collaboratorsModal')?.classList.remove('active');
-    document.getElementById('collabSearchResults').innerHTML = '';
-    document.getElementById('collabSearchInput').value = '';
+  document.getElementById('collaboratorsModal')?.classList.remove('active');
+  document.getElementById('collabSearchResults').innerHTML = '';
+  document.getElementById('collabSearchInput').value = '';
 }
 
 function renderCollaboratorsModal(tripId) {
-    const list = document.getElementById('collaboratorsList');
-    if (!list) return;
+  const list = document.getElementById('collaboratorsList');
+  if (!list) return;
 
-    if (!currentTripCollaborators?.length) {
-        list.innerHTML = '<p class="friends-empty">No collaborators yet. Invite a friend below!</p>';
-        return;
-    }
+  if (!currentTripCollaborators?.length) {
+    list.innerHTML = '<p class="friends-empty">No collaborators yet. Invite a friend below!</p>';
+    return;
+  }
 
-    list.innerHTML = currentTripCollaborators.map(c => `
-        <div class="friend-card">
-            <div class="friend-avatar" style="background: var(--accent-sky);">${(c.name || '?')[0].toUpperCase()}</div>
-            <div class="friend-info">
-                <div class="friend-name">${c.name || 'Unknown'}</div>
-                <div class="friend-email">${c.email || ''} · <span style="color:var(--accent-warm)">${c.role}</span></div>
-            </div>
-            <div class="friend-actions">
-                <button class="friend-btn friend-btn-remove" onclick="removeTripCollaborator('${c.collaboratorId}', '${tripId}')">Remove</button>
-            </div>
-        </div>
-    `).join('');
+  list.innerHTML = currentTripCollaborators.map(c => `
+    <div class="friend-card">
+      <div class="friend-avatar" style="background: var(--accent-sky);">${(c.name || '?')[0].toUpperCase()}</div>
+      <div class="friend-info">
+        <div class="friend-name">${c.name || 'Unknown'}</div>
+        <div class="friend-email">${c.email || ''} · <span style="color:var(--accent-warm)">${c.role}</span></div>
+      </div>
+      <div class="friend-actions">
+        <button class="friend-btn friend-btn-remove" onclick="removeTripCollaborator('${c.collaboratorId}', '${tripId}')">Remove</button>
+      </div>
+    </div>
+  `).join('');
 }
 
 async function handleCollabSearch() {
-    const input = document.getElementById('collabSearchInput');
-    const results = document.getElementById('collabSearchResults');
-    if (!input || !results) return;
+  const input = document.getElementById('collabSearchInput');
+  const results = document.getElementById('collabSearchResults');
+  if (!input || !results) return;
 
-    const email = input.value.trim();
-    if (!email) { results.innerHTML = ''; return; }
+  const email = input.value.trim();
+  if (!email) { results.innerHTML = ''; return; }
 
-    results.innerHTML = '<p style="color: var(--text-tertiary); font-size: 13px;">Searching…</p>';
-    const users = await searchUserByEmail(email);
+  results.innerHTML = '<p style="color: var(--text-tertiary); font-size: 13px;">Searching…</p>';
+  const users = await searchUserByEmail(email);
 
-    if (!users.length) {
-        results.innerHTML = '<p class="friends-empty">No users found.</p>';
-        return;
-    }
+  if (!users.length) {
+    results.innerHTML = '<p class="friends-empty">No users found.</p>';
+    return;
+  }
 
-    const tripId = document.getElementById('collaboratorsModal').dataset.tripId;
-    const existingIds = new Set((currentTripCollaborators || []).map(c => c.id));
+  const tripId = document.getElementById('collaboratorsModal').dataset.tripId;
+  const existingIds = new Set((currentTripCollaborators || []).map(c => c.id));
 
-    results.innerHTML = users.map(u => `
-        <div class="friend-card">
-            <div class="friend-avatar">${(u.name || '?')[0].toUpperCase()}</div>
-            <div class="friend-info">
-                <div class="friend-name">${u.name || 'Unknown'}</div>
-                <div class="friend-email">${u.email || ''}</div>
-            </div>
-            <div class="friend-actions">
-                ${existingIds.has(u.id)
-                    ? '<span style="font-size:12px;color:var(--text-tertiary)">Already added</span>'
-                    : `<button class="friend-btn friend-btn-add" onclick="addTripCollaborator('${tripId}', '${u.id}')">Invite</button>`
-                }
-            </div>
-        </div>
-    `).join('');
+  results.innerHTML = users.map(u => `
+    <div class="friend-card">
+      <div class="friend-avatar">${(u.name || '?')[0].toUpperCase()}</div>
+      <div class="friend-info">
+        <div class="friend-name">${u.name || 'Unknown'}</div>
+        <div class="friend-email">${u.email || ''}</div>
+      </div>
+      <div class="friend-actions">
+        ${existingIds.has(u.id)
+          ? '<span style="font-size:12px;color:var(--text-tertiary)">Already added</span>'
+          : `<button class="friend-btn friend-btn-add" onclick="addTripCollaborator('${tripId}', '${u.id}')">Invite</button>`
+        }
+      </div>
+    </div>
+  `).join('');
 }
-
-
 
 // ===========================
 // WEATHER WIDGET
@@ -1353,7 +1353,6 @@ async function fetchWeatherForDay(destination, dateStr) {
   widget.innerHTML = '<div class="weather-loading">Fetching forecast…</div>';
 
   try {
-    // Geocode destination
     const geoRes = await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&language=en&format=json`
     );
@@ -1362,9 +1361,7 @@ async function fetchWeatherForDay(destination, dateStr) {
 
     const { latitude, longitude, name, country } = geoData.results[0];
 
-    // Check if date is within forecast range (16 days from today)
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    const today = new Date(); today.setHours(0,0,0,0);
     const targetDate = new Date(dateStr + 'T00:00:00');
     const diffDays = Math.round((targetDate - today) / (1000*60*60*24));
 
@@ -1373,7 +1370,6 @@ async function fetchWeatherForDay(destination, dateStr) {
       return;
     }
 
-    // Fetch forecast
     const weatherRes = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&hourly=temperature_2m,weathercode&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`
     );
@@ -1382,24 +1378,20 @@ async function fetchWeatherForDay(destination, dateStr) {
     const daily = weatherData.daily;
     if (!daily?.weathercode?.length) throw new Error('No forecast data');
 
-    const code = daily.weathercode[0];
-    const tmax = Math.round(daily.temperature_2m_max[0]);
-    const tmin = Math.round(daily.temperature_2m_min[0]);
+    const code   = daily.weathercode[0];
+    const tmax   = Math.round(daily.temperature_2m_max[0]);
+    const tmin   = Math.round(daily.temperature_2m_min[0]);
     const precip = daily.precipitation_sum[0];
-    const wind = Math.round(daily.windspeed_10m_max[0]);
-    const icon = WMO_ICONS[code] || '🌡️';
-    const desc = WMO_CODES[code] || 'Unknown';
+    const wind   = Math.round(daily.windspeed_10m_max[0]);
+    const icon   = WMO_ICONS[code] || '🌡️';
+    const desc   = WMO_CODES[code] || 'Unknown';
 
-    // Hourly (show every 3 hours, daytime only: 7am-10pm)
     const hours = weatherData.hourly;
     let hourlyHtml = '';
     if (hours?.time) {
       const dayHours = hours.time
         .map((t, i) => ({ time: t, temp: Math.round(hours.temperature_2m[i]), code: hours.weathercode[i] }))
-        .filter(h => {
-          const hr = new Date(h.time).getHours();
-          return hr >= 7 && hr <= 22 && hr % 3 === 0;
-        });
+        .filter(h => { const hr = new Date(h.time).getHours(); return hr >= 7 && hr <= 22 && hr % 3 === 0; });
 
       hourlyHtml = `<div class="weather-hourly">` +
         dayHours.map(h => {
@@ -1433,14 +1425,10 @@ async function fetchWeatherForDay(destination, dateStr) {
       </div>
     `;
 
-    // Cache for AIDayTips so it doesn't need to re-fetch
+    // Cache for AIDayTips
     _lastFetchedWeather = {
-      description:   desc,
-      icon:          icon,
-      tempMax:       tmax,
-      tempMin:       tmin,
-      precipitation: precip ?? 0,
-      windSpeed:     wind,
+      description: desc, icon, tempMax: tmax, tempMin: tmin,
+      precipitation: precip ?? 0, windSpeed: wind,
     };
 
   } catch (err) {
@@ -1454,7 +1442,6 @@ async function fetchWeatherForDay(destination, dateStr) {
 // SCRATCH MAP
 // ===========================
 
-// Rich travel-inspired palette — enough colours to feel varied
 const SCRATCH_PALETTE = [
   '#d97757','#5b9aa9','#e8a838','#7db87a','#c17ab8',
   '#e06b7a','#5b8dd9','#d4a853','#6bbfb0','#b87a5b',
@@ -1462,8 +1449,7 @@ const SCRATCH_PALETTE = [
   '#8db85b','#5b7ab8','#d4b85b','#b85b7a','#5bd4c4',
 ];
 
-// name → colour index, persisted alongside visited set
-let visitedCountries = new Map(); // name → colorIndex
+let visitedCountries = new Map();
 let scratchMapReady = false;
 let scratchColorCounter = 0;
 
@@ -1477,22 +1463,17 @@ async function initScratchMap() {
   const container = document.getElementById('scratchMapInner');
   if (!container || scratchMapReady) return;
 
-  // Always start fresh, then restore from localStorage
   visitedCountries = new Map();
   scratchColorCounter = 0;
   const saved = localStorage.getItem(`voyage_scratch_${currentUser?.id}`);
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      // Support both old Set format (array of strings) and new Map format (array of [name, idx])
       if (Array.isArray(parsed) && parsed.length && Array.isArray(parsed[0])) {
         visitedCountries = new Map(parsed);
         scratchColorCounter = visitedCountries.size;
       } else if (Array.isArray(parsed)) {
-        // Migrate old format
-        parsed.forEach(name => {
-          visitedCountries.set(name, getNextScratchColor());
-        });
+        parsed.forEach(name => { visitedCountries.set(name, getNextScratchColor()); });
       }
     } catch(e) {}
   }
@@ -1515,12 +1496,10 @@ async function initScratchMap() {
       .attr('viewBox', `0 0 ${width} ${height}`)
       .attr('preserveAspectRatio', 'xMidYMid meet');
 
-    // Ocean background
     svg.append('rect')
       .attr('width', width).attr('height', height)
       .attr('fill', '#c8dff0').attr('rx', 8);
 
-    // Country name lookup
     const countryNames = {
       '004':'Afghanistan','008':'Albania','012':'Algeria','024':'Angola','032':'Argentina',
       '036':'Australia','040':'Austria','050':'Bangladesh','056':'Belgium','068':'Bolivia',
@@ -1629,7 +1608,6 @@ async function generateAISummary() {
 
   regenerateBtn.disabled = true;
 
-  // Build context from memories
   const trip = window.currentMemoryTrip;
   const mems = trip.memories || [];
 
@@ -1675,7 +1653,6 @@ Write in second person ("you"). Keep it genuine and heartfelt, not generic.`;
     const data = await response.json();
     const text = data.content?.[0]?.text || 'Could not generate summary. Please try again.';
 
-    // Typewriter effect
     textEl.classList.remove('ai-typing');
     textEl.textContent = '';
     textEl.classList.add('ai-typing');
@@ -1683,10 +1660,7 @@ Write in second person ("you"). Keep it genuine and heartfelt, not generic.`;
     const interval = setInterval(() => {
       textEl.textContent += text[i];
       i++;
-      if (i >= text.length) {
-        clearInterval(interval);
-        textEl.classList.remove('ai-typing');
-      }
+      if (i >= text.length) { clearInterval(interval); textEl.classList.remove('ai-typing'); }
     }, 12);
 
   } catch (err) {
@@ -1701,7 +1675,6 @@ Write in second person ("you"). Keep it genuine and heartfelt, not generic.`;
 // RIGHT PANEL: Trip Planner
 // =============================================
 
-// ── Update right panel when a day is selected ──
 function updateRightPanel() {
   if (!currentTrip) return;
 
@@ -1724,47 +1697,80 @@ function updateRightPanel() {
   set('rpStatUntil',   untilText);
   set('rpStatPct',     totalDays ? pct + '%' : '—');
 
+  // ── Packing Planner button ────────────────────────────────────────────────
+  // Inject once into the right panel sidebar (if packing-planner.js is loaded)
+  if (typeof window.PackingPlanner === 'object') {
+    const packingAnchor = el('rpPackingBtn') || (() => {
+      // Create and inject the button if it doesn't exist yet
+      const statsEl = el('rpStatDays')?.closest('.rp-stats');
+      if (!statsEl) return null;
+      const btn = document.createElement('button');
+      btn.id = 'rpPackingBtn';
+      btn.style.cssText = `
+        display:flex;align-items:center;gap:8px;width:100%;
+        padding:10px 14px;margin-bottom:12px;
+        background:linear-gradient(135deg,rgba(217,119,87,.12),rgba(91,154,169,.08));
+        border:1px solid rgba(217,119,87,.25);border-radius:10px;
+        color:#d97757;font-family:inherit;font-size:13px;font-weight:600;
+        cursor:pointer;transition:all .2s;text-align:left;
+      `;
+      btn.onmouseover = () => { btn.style.background = 'linear-gradient(135deg,rgba(217,119,87,.2),rgba(91,154,169,.14))'; btn.style.borderColor = 'rgba(217,119,87,.45)'; };
+      btn.onmouseout  = () => { btn.style.background = 'linear-gradient(135deg,rgba(217,119,87,.12),rgba(91,154,169,.08))'; btn.style.borderColor = 'rgba(217,119,87,.25)'; };
+      btn.innerHTML = '🎒 Smart Packing Planner';
+      btn.addEventListener('click', () => {
+        window.PackingPlanner.open(currentTrip?.id, currentTrip);
+      });
+      statsEl.insertAdjacentElement('afterend', btn);
+      return btn;
+    })();
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Day card
-  const dayCard = el('rpDayCard');
-  const dayDate = el('rpDayDate');
-  const dayLabel = el('rpDayLabel');
+  const dayCard    = el('rpDayCard');
+  const dayDate    = el('rpDayDate');
+  const dayLabel   = el('rpDayLabel');
   const dayPreview = el('rpDayPreview');
-  const openBtn = el('rpOpenBtn');
+  const openBtn    = el('rpOpenBtn');
 
   if (selectedDate) {
     const dateStr = selectedDate.toLocaleDateString('en-US', { weekday:'short', month:'long', day:'numeric' });
     if (dayDate) { dayDate.textContent = dateStr; dayDate.style.cssText = ''; }
     if (dayLabel) dayLabel.textContent = 'Selected';
 
-    // Look for content preview in richNotes
+    // ── FIX: use getDateKey (local time) and parseNotesData ──────────────────
     let preview = '';
-    const dateKey = selectedDate.toISOString().split('T')[0];
-    const notes = currentTrip.richNotes?.[dateKey] || currentTrip.days?.[dateKey];
-    if (notes) {
-      preview = notes.aiCard?.headline || notes.morning || notes.afternoon || notes.evening || '';
+    const dateKey  = getDateKey(selectedDate);                              // ← was toISOString() which gave wrong UTC date
+    const richEntry = currentTrip.richNotes?.[dateKey];
+    const dayEntry  = currentTrip.days?.[dateKey];
+
+    if (richEntry?.content) {
+      const parsed = parseNotesData(richEntry.content);
+      preview = parsed.aiCard?.headline || parsed.morning || parsed.afternoon || parsed.evening || '';
+    } else if (dayEntry?.notes) {
+      const parsed = parseNotesData(dayEntry.notes);
+      preview = parsed.aiCard?.headline || parsed.morning || parsed.afternoon || parsed.evening || dayEntry.notes || '';
     }
+    // ────────────────────────────────────────────────────────────────────────
+
     if (dayPreview) dayPreview.textContent = preview || 'Nothing planned yet — click to add notes, photos & ideas.';
-    if (dayCard) {
-      dayCard.classList.toggle('has-content', !!preview);
-    }
+    if (dayCard) dayCard.classList.toggle('has-content', !!preview);
     if (openBtn) openBtn.style.display = '';
   } else {
-    if (dayDate) { dayDate.textContent = 'No day selected'; dayDate.style.color = 'var(--text-tertiary)'; dayDate.style.fontStyle = 'italic'; dayDate.style.fontSize = '14px'; }
-    if (dayLabel) dayLabel.textContent = 'Click any day to plan it';
+    if (dayDate)    { dayDate.textContent = 'No day selected'; dayDate.style.color = 'var(--text-tertiary)'; dayDate.style.fontStyle = 'italic'; dayDate.style.fontSize = '14px'; }
+    if (dayLabel)   dayLabel.textContent = 'Click any day to plan it';
     if (dayPreview) dayPreview.textContent = '';
-    if (openBtn) openBtn.style.display = 'none';
+    if (openBtn)    openBtn.style.display = 'none';
   }
 
-  // Render checklist
   rpRenderChecklist();
 }
 
 // ── Checklist storage (localStorage keyed by trip id) ──
 function rpGetChecklist() {
   if (!currentTrip) return [];
-  try {
-    return JSON.parse(localStorage.getItem('rp_checklist_' + currentTrip.id) || '[]');
-  } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('rp_checklist_' + currentTrip.id) || '[]'); }
+  catch { return []; }
 }
 
 function rpSaveChecklist(items) {
@@ -1773,7 +1779,7 @@ function rpSaveChecklist(items) {
 }
 
 function rpRenderChecklist() {
-  const list = document.getElementById('rpChecklist');
+  const list  = document.getElementById('rpChecklist');
   const empty = document.getElementById('rpEmptyChecklist');
   if (!list || list._isStub) return;
 
@@ -1795,10 +1801,7 @@ function rpRenderChecklist() {
     text.textContent = item.text;
     text.contentEditable = true;
     text.spellcheck = false;
-    text.onblur = () => {
-      items[i].text = text.textContent.trim() || item.text;
-      rpSaveChecklist(items);
-    };
+    text.onblur = () => { items[i].text = text.textContent.trim() || item.text; rpSaveChecklist(items); };
     text.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); text.blur(); } };
 
     const del = document.createElement('button');
@@ -1813,9 +1816,9 @@ function rpRenderChecklist() {
 }
 
 function rpShowInput() {
-  const row = document.getElementById('rpInputRow');
+  const row   = document.getElementById('rpInputRow');
   const input = document.getElementById('rpNewItem');
-  if (row && !row._isStub) { row.style.display = 'flex'; }
+  if (row && !row._isStub)   row.style.display = 'flex';
   if (input && !input._isStub) { input.focus(); input.value = ''; }
 }
 
