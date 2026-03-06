@@ -1,0 +1,60 @@
+VOYAGE — PROPRIETARY SOFTWARE LICENSE
+======================================
+
+Copyright (c) 2026 Voyage. All Rights Reserved.
+
+NOTICE: This software, including all source code, design assets, user interface
+elements, written content, and associated documentation (collectively, the
+"Software"), is the exclusive proprietary property of the copyright holder.
+
+NO PERMISSION IS GRANTED TO:
+
+  - Copy, reproduce, or duplicate the Software or any portion thereof
+  - Modify, adapt, translate, or create derivative works based on the Software
+  - Distribute, publish, sublicense, sell, or transfer the Software
+  - Reverse engineer, decompile, or disassemble the Software
+  - Use the Software or any part of it in any other product or service,
+    whether commercial or non-commercial
+  - Remove or alter any proprietary notices, labels, or marks on the Software
+
+This license covers the entirety of the Voyage application, including but
+not limited to:
+
+  - All JavaScript source files (ui.js, supabase-integration.js,
+    packing-planner.js, ai-day-tips.js, and all other .js files)
+  - All HTML structure and templates (index.html and related files)
+  - All CSS styles, design systems, and visual elements
+  - All written content, copy, and in-app text
+  - All icons, images, and graphical assets produced for this project
+  - The overall design language, aesthetic, and user experience
+
+PERMITTED USE:
+
+  The Software may be accessed and used solely by the copyright holder for
+  personal use. No other use is permitted without the express prior written
+  consent of the copyright holder.
+
+THIRD-PARTY COMPONENTS:
+
+  This Software makes use of certain third-party libraries and services which
+  are governed by their own respective licenses. These include but are not
+  limited to Supabase, the Anthropic Claude API, Open-Meteo, and the Pinterest
+  API. The restrictions in this license apply only to original code and content
+  created for Voyage, and do not supersede the terms of any third-party license.
+
+DISCLAIMER:
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+  FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. IN NO EVENT SHALL THE
+  COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY
+  ARISING FROM THE USE OF OR INABILITY TO USE THE SOFTWARE.
+
+CONTACT:
+
+  For licensing enquiries or permission requests, please contact:
+  privacy@voyage-app.com
+
+======================================
+Voyage · voyage-app-mocha.vercel.app
+======================================
