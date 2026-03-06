@@ -45,6 +45,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
+  // Skip anything that isn't http/https (e.g. chrome-extension://, data:, blob:)
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') return;
+
   // Always go network-first for Supabase, Anthropic API, and weather APIs
   const isApiCall = url.hostname.includes('supabase.co')
     || url.hostname.includes('anthropic.com')
