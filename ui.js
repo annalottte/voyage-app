@@ -497,7 +497,7 @@ function renderCalendar() {
     if (chip) {
       if (cd && cd.cls !== 'past') {
         chip.textContent = cd.text;
-        chip.className = `cal-countdown-chip${cd.cls === 'ongoing' ? ' ongoing' : ''}`;
+        chip.className = `sidebar-countdown${cd.cls === 'ongoing' ? ' ongoing' : ''}`;
         chip.style.display = '';
       } else {
         chip.style.display = 'none';
@@ -534,6 +534,9 @@ function renderCalendar() {
   for (let day = 1; day <= remaining; day++) {
     grid.appendChild(createDayCell(day, true, currentDate.getMonth() + 1));
   }
+
+  // Update right panel stats whenever calendar re-renders
+  if (typeof updateRightPanel === 'function') updateRightPanel();
 }
 
 function createDayCell(day, otherMonth, month) {
@@ -623,6 +626,7 @@ function selectDate(day) {
   selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
   renderCalendar();
   updateDetailsPanel();
+  updateRightPanel();
   openDayDetail();
 }
 
@@ -1691,4 +1695,144 @@ Write in second person ("you"). Keep it genuine and heartfelt, not generic.`;
   }
 
   regenerateBtn.disabled = false;
+}
+
+// =============================================
+// RIGHT PANEL: Trip Planner
+// =============================================
+
+// ── Update right panel when a day is selected ──
+function updateRightPanel() {
+  if (!currentTrip) return;
+
+  // Stats
+  const start = new Date((currentTrip.start_date || currentTrip.startDate) + 'T00:00:00');
+  const end   = new Date((currentTrip.end_date   || currentTrip.endDate)   + 'T00:00:00');
+  const totalDays  = (isFinite(start) && isFinite(end))
+    ? Math.ceil((end - start) / (1000*60*60*24)) + 1 : null;
+  const daysPlanned = currentTrip.days ? Object.keys(currentTrip.days).length : 0;
+  const dStart = daysUntil(currentTrip.start_date || currentTrip.startDate);
+  const dEnd   = daysUntil(currentTrip.end_date   || currentTrip.endDate);
+  const untilText = dStart > 0 ? dStart : (dEnd >= 0 ? '✈' : '✓');
+  const pct = totalDays ? Math.round((daysPlanned / totalDays) * 100) : 0;
+
+  const el = id => { const e = document.getElementById(id); return (e && !e._isStub) ? e : null; };
+  const set = (id, v) => { const e = el(id); if (e) e.textContent = v; };
+
+  set('rpStatDays',    totalDays ?? '—');
+  set('rpStatPlanned', daysPlanned);
+  set('rpStatUntil',   untilText);
+  set('rpStatPct',     totalDays ? pct + '%' : '—');
+
+  // Day card
+  const dayCard = el('rpDayCard');
+  const dayDate = el('rpDayDate');
+  const dayLabel = el('rpDayLabel');
+  const dayPreview = el('rpDayPreview');
+  const openBtn = el('rpOpenBtn');
+
+  if (selectedDate) {
+    const dateStr = selectedDate.toLocaleDateString('en-US', { weekday:'short', month:'long', day:'numeric' });
+    if (dayDate) { dayDate.textContent = dateStr; dayDate.style.cssText = ''; }
+    if (dayLabel) dayLabel.textContent = 'Selected';
+
+    // Look for content preview in richNotes
+    let preview = '';
+    const dateKey = selectedDate.toISOString().split('T')[0];
+    const notes = currentTrip.richNotes?.[dateKey] || currentTrip.days?.[dateKey];
+    if (notes) {
+      preview = notes.aiCard?.headline || notes.morning || notes.afternoon || notes.evening || '';
+    }
+    if (dayPreview) dayPreview.textContent = preview || 'Nothing planned yet — click to add notes, photos & ideas.';
+    if (dayCard) {
+      dayCard.classList.toggle('has-content', !!preview);
+    }
+    if (openBtn) openBtn.style.display = '';
+  } else {
+    if (dayDate) { dayDate.textContent = 'No day selected'; dayDate.style.color = 'var(--text-tertiary)'; dayDate.style.fontStyle = 'italic'; dayDate.style.fontSize = '14px'; }
+    if (dayLabel) dayLabel.textContent = 'Click any day to plan it';
+    if (dayPreview) dayPreview.textContent = '';
+    if (openBtn) openBtn.style.display = 'none';
+  }
+
+  // Render checklist
+  rpRenderChecklist();
+}
+
+// ── Checklist storage (localStorage keyed by trip id) ──
+function rpGetChecklist() {
+  if (!currentTrip) return [];
+  try {
+    return JSON.parse(localStorage.getItem('rp_checklist_' + currentTrip.id) || '[]');
+  } catch { return []; }
+}
+
+function rpSaveChecklist(items) {
+  if (!currentTrip) return;
+  try { localStorage.setItem('rp_checklist_' + currentTrip.id, JSON.stringify(items)); } catch {}
+}
+
+function rpRenderChecklist() {
+  const list = document.getElementById('rpChecklist');
+  const empty = document.getElementById('rpEmptyChecklist');
+  if (!list || list._isStub) return;
+
+  const items = rpGetChecklist();
+  empty && (empty.style.display = items.length ? 'none' : '');
+  list.innerHTML = '';
+
+  items.forEach((item, i) => {
+    const row = document.createElement('div');
+    row.className = 'rp-check-item' + (item.done ? ' done' : '');
+
+    const box = document.createElement('div');
+    box.className = 'rp-check-box';
+    box.title = item.done ? 'Mark undone' : 'Mark done';
+    box.onclick = () => { items[i].done = !items[i].done; rpSaveChecklist(items); rpRenderChecklist(); };
+
+    const text = document.createElement('div');
+    text.className = 'rp-check-text';
+    text.textContent = item.text;
+    text.contentEditable = true;
+    text.spellcheck = false;
+    text.onblur = () => {
+      items[i].text = text.textContent.trim() || item.text;
+      rpSaveChecklist(items);
+    };
+    text.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); text.blur(); } };
+
+    const del = document.createElement('button');
+    del.className = 'rp-check-del';
+    del.title = 'Remove';
+    del.textContent = '×';
+    del.onclick = () => { items.splice(i, 1); rpSaveChecklist(items); rpRenderChecklist(); };
+
+    row.append(box, text, del);
+    list.appendChild(row);
+  });
+}
+
+function rpShowInput() {
+  const row = document.getElementById('rpInputRow');
+  const input = document.getElementById('rpNewItem');
+  if (row && !row._isStub) { row.style.display = 'flex'; }
+  if (input && !input._isStub) { input.focus(); input.value = ''; }
+}
+
+function rpHideInput() {
+  const row = document.getElementById('rpInputRow');
+  if (row && !row._isStub) row.style.display = 'none';
+}
+
+function rpAddItem() {
+  const input = document.getElementById('rpNewItem');
+  if (!input || input._isStub) return;
+  const text = input.value.trim();
+  if (!text) return;
+  const items = rpGetChecklist();
+  items.push({ text, done: false });
+  rpSaveChecklist(items);
+  rpRenderChecklist();
+  input.value = '';
+  input.focus();
 }
