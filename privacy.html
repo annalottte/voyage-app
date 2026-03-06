@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Voyage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0e0d0a;
+      --bg2:       #13120f;
+      --border:    rgba(232,213,183,.09);
+      --text:      #e8d5b7;
+      --text-dim:  rgba(232,213,183,.45);
+      --text-faint:rgba(232,213,183,.25);
+      --accent:    #d97757;
+      --accent2:   #5b9aa9;
+      --gold:      #c9a96e;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    /* ── background texture ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(217,119,87,.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(91,154,169,.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* ── layout ── */
+    .wrap {
+      position: relative; z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 80px 32px 120px;
+    }
+
+    /* ── header ── */
+    .site-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 64px;
+    }
+    .logo-mark {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, rgba(217,119,87,.2), rgba(91,154,169,.15));
+      border: 1px solid rgba(217,119,87,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo-name {
+      font-family: 'Fraunces', serif;
+      font-size: 18px; font-weight: 600;
+      color: var(--text);
+      letter-spacing: -.2px;
+    }
+    .back-link {
+      margin-left: auto;
+      font-size: 13px; color: var(--text-dim);
+      text-decoration: none;
+      display: flex; align-items: center; gap: 5px;
+      transition: color .15s;
+    }
+    .back-link:hover { color: var(--text); }
+
+    /* ── hero ── */
+    .hero {
+      margin-bottom: 56px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: rgba(217,119,87,.65);
+      margin-bottom: 14px;
+    }
+    .hero-title {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 600; line-height: 1.1;
+      letter-spacing: -.5px;
+      color: #f5efe6;
+      margin-bottom: 16px;
+    }
+    .hero-title em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    .hero-meta {
+      font-size: 13px; color: var(--text-faint);
+      display: flex; gap: 20px; flex-wrap: wrap;
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+    /* ── toc ── */
+    .toc {
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+    }
+    .toc-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--text-faint); margin-bottom: 12px;
+    }
+    .toc-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .toc-list a {
+      font-size: 13px; color: var(--text-dim);
+      text-decoration: none; transition: color .15s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toc-list a::before {
+      content: ''; width: 4px; height: 4px;
+      border-radius: 50%; background: var(--accent);
+      opacity: .5; flex-shrink: 0;
+    }
+    .toc-list a:hover { color: var(--text); }
+    .toc-list a:hover::before { opacity: 1; }
+
+    /* ── sections ── */
+    .section { margin-bottom: 48px; }
+
+    .section-anchor { display: block; height: 1px; margin-top: -1px; }
+
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px;
+    }
+    .section-num {
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+      background: rgba(217,119,87,.1);
+      border: 1px solid rgba(217,119,87,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--accent);
+    }
+    .section-title {
+      font-family: 'Fraunces', serif;
+      font-size: 20px; font-weight: 600;
+      color: #f5efe6; letter-spacing: -.2px;
+    }
+
+    .section p {
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .section p:last-child { margin-bottom: 0; }
+
+    .section ul {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 8px;
+      margin: 12px 0;
+    }
+    .section ul li {
+      display: flex; align-items: flex-start; gap: 10px;
+      color: var(--text-dim); font-size: 14px;
+    }
+    .section ul li::before {
+      content: '→'; color: var(--accent); opacity: .7;
+      flex-shrink: 0; margin-top: 1px;
+    }
+
+    /* ── highlight box ── */
+    .highlight {
+      background: linear-gradient(135deg, rgba(91,154,169,.07), rgba(91,154,169,.03));
+      border: 1px solid rgba(91,154,169,.18);
+      border-radius: 11px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      font-size: 13px;
+      color: rgba(180,220,230,.65);
+      line-height: 1.65;
+    }
+    .highlight strong { color: rgba(180,220,230,.9); }
+
+    /* ── pinterest box ── */
+    .pinterest-box {
+      background: linear-gradient(135deg, rgba(189,8,28,.07), rgba(189,8,28,.03));
+      border: 1px solid rgba(189,8,28,.2);
+      border-radius: 11px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      font-size: 13px;
+      color: rgba(255,180,180,.6);
+      line-height: 1.65;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .pinterest-box .p-icon { font-size: 20px; flex-shrink: 0; margin-top: -1px; }
+    .pinterest-box strong { color: rgba(255,180,180,.85); }
+
+    /* ── divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── contact ── */
+    .contact-card {
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 28px;
+      display: flex; gap: 20px; align-items: flex-start;
+    }
+    .contact-icon {
+      font-size: 28px; flex-shrink: 0;
+    }
+    .contact-title {
+      font-family: 'Fraunces', serif;
+      font-size: 17px; color: #f5efe6;
+      margin-bottom: 6px;
+    }
+    .contact-text {
+      font-size: 13px; color: var(--text-dim); line-height: 1.65;
+    }
+    .contact-text a {
+      color: var(--accent); text-decoration: none;
+    }
+    .contact-text a:hover { text-decoration: underline; }
+
+    /* ── footer ── */
+    footer {
+      margin-top: 80px; padding-top: 28px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+      font-size: 12px; color: var(--text-faint);
+    }
+
+    @media (max-width: 600px) {
+      .wrap { padding: 48px 20px 80px; }
+      .contact-card { flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="site-header">
+      <div class="logo-mark">✈️</div>
+      <span class="logo-name">Voyage</span>
+      <a href="/" class="back-link">← Back to app</a>
+    </header>
+
+    <div class="hero">
+      <div class="hero-eyebrow">Legal · Privacy</div>
+      <h1 class="hero-title">Your data,<br><em>your journey.</em></h1>
+      <div class="hero-meta">
+        <span>📅 Effective: January 2025</span>
+        <span>🔄 Last updated: March 2026</span>
+      </div>
+    </div>
+
+    <nav class="toc">
+      <div class="toc-label">Contents</div>
+      <ul class="toc-list">
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#data-collected">Data We Collect</a></li>
+        <li><a href="#pinterest">Pinterest Integration</a></li>
+        <li><a href="#data-use">How We Use Your Data</a></li>
+        <li><a href="#data-storage">Data Storage & Security</a></li>
+        <li><a href="#third-parties">Third-Party Services</a></li>
+        <li><a href="#your-rights">Your Rights</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </nav>
+
+    <!-- 1. Overview -->
+    <section class="section">
+      <span id="overview" class="section-anchor"></span>
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <h2 class="section-title">Overview</h2>
+      </div>
+      <p>Voyage is a personal travel planning application that helps you organise trips, plan itineraries, and collect travel memories. We are committed to protecting your privacy and being transparent about how your data is handled.</p>
+      <p>This policy explains what data we collect, why we collect it, and how you can control it. We will never sell your personal data to third parties.</p>
+      <div class="highlight">
+        <strong>The short version:</strong> We collect only what's necessary to make the app work. Your travel data lives in your account. Pinterest data is read-only and never stored on our servers.
+      </div>
+    </section>
+
+    <!-- 2. Data Collected -->
+    <section class="section">
+      <span id="data-collected" class="section-anchor"></span>
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <h2 class="section-title">Data We Collect</h2>
+      </div>
+      <p>We collect the following categories of data when you use Voyage:</p>
+      <ul>
+        <li><strong>Account information</strong> — your name and email address, used to identify your account and personalise your experience.</li>
+        <li><strong>Trip data</strong> — destinations, dates, itinerary notes, photos, and links you add to your trips. This is stored in our database to sync across your devices.</li>
+        <li><strong>Memory journal entries</strong> — titles, notes, and photos you upload to your Memory Lane.</li>
+        <li><strong>Packing lists</strong> — items, weights, and preferences stored locally in your browser (localStorage) and optionally synced to your account.</li>
+        <li><strong>Usage data</strong> — basic analytics such as which features you use, to help us improve the app. This data is anonymised.</li>
+      </ul>
+      <p>We do not collect payment information, precise location data, or any data beyond what is needed for the features described above.</p>
+    </section>
+
+    <!-- 3. Pinterest -->
+    <section class="section">
+      <span id="pinterest" class="section-anchor"></span>
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <h2 class="section-title">Pinterest Integration</h2>
+      </div>
+      <p>Voyage offers an optional Pinterest integration that allows you to display your saved Pinterest boards and pins within the app's Outfit Mood Board feature.</p>
+      <div class="pinterest-box">
+        <span class="p-icon">📌</span>
+        <div>
+          <strong>Pinterest data is read-only.</strong> We request permission to read your Pinterest boards and pins solely to display them inside the Voyage mood board. We do not create, modify, or delete any Pinterest content on your behalf.
+        </div>
+      </div>
+      <p>Specifically, when you connect your Pinterest account:</p>
+      <ul>
+        <li>We request <strong>read-only</strong> access to your boards and pins.</li>
+        <li>Your Pinterest access token is stored <strong>only in your browser's localStorage</strong> — it is never sent to or stored on our servers.</li>
+        <li>We do not store, cache, or log any Pinterest board names, pin images, or pin descriptions on our servers.</li>
+        <li>All Pinterest data is fetched directly from Pinterest's API in your browser and displayed only to you.</li>
+        <li>You can disconnect your Pinterest account at any time from within the Voyage app, which immediately removes the access token from your browser.</li>
+      </ul>
+      <p>Pinterest's own privacy policy governs how Pinterest handles your data. You can review it at <a href="https://policy.pinterest.com/privacy-policy" target="_blank" rel="noopener" style="color: var(--accent);">policy.pinterest.com</a>.</p>
+    </section>
+
+    <!-- 4. Data Use -->
+    <section class="section">
+      <span id="data-use" class="section-anchor"></span>
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <h2 class="section-title">How We Use Your Data</h2>
+      </div>
+      <p>Your data is used exclusively to provide and improve the Voyage experience:</p>
+      <ul>
+        <li>To display your trips, itineraries, and memories within the app.</li>
+        <li>To generate AI-powered day plans and packing lists using your trip details as context. These requests are processed via our API and are not used to train AI models.</li>
+        <li>To enable collaboration features — sharing a trip with another user grants them access only to that specific trip's data.</li>
+        <li>To send transactional emails such as password reset links. We do not send marketing emails unless you explicitly opt in.</li>
+      </ul>
+      <p>We do not sell, rent, or share your personal data with advertisers or data brokers.</p>
+    </section>
+
+    <!-- 5. Storage -->
+    <section class="section">
+      <span id="data-storage" class="section-anchor"></span>
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <h2 class="section-title">Data Storage & Security</h2>
+      </div>
+      <p>Your account and trip data is stored in <strong>Supabase</strong>, a hosted PostgreSQL database with row-level security enabled. This means only you (and collaborators you explicitly invite) can access your trip data.</p>
+      <p>Photos you upload are stored in Supabase Storage with private access controls. Packing list data and your scratch map are stored locally in your browser's localStorage and are not transmitted to our servers.</p>
+      <p>We use HTTPS for all data transmission. Passwords are hashed and never stored in plain text.</p>
+      <div class="highlight">
+        <strong>Data retention:</strong> Your data is retained for as long as your account is active. You can delete your account at any time from the Settings menu, which permanently removes all your trips, memories, and personal data from our systems.
+      </div>
+    </section>
+
+    <!-- 6. Third Parties -->
+    <section class="section">
+      <span id="third-parties" class="section-anchor"></span>
+      <div class="section-header">
+        <div class="section-num">6</div>
+        <h2 class="section-title">Third-Party Services</h2>
+      </div>
+      <p>Voyage uses the following third-party services to power its features. Each has its own privacy policy:</p>
+      <ul>
+        <li><strong>Supabase</strong> — database and authentication. <a href="https://supabase.com/privacy" target="_blank" rel="noopener" style="color:var(--accent)">supabase.com/privacy</a></li>
+        <li><strong>Anthropic Claude API</strong> — AI-generated day plans and packing lists. Prompts include trip details but no personally identifiable information. <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener" style="color:var(--accent)">anthropic.com/privacy</a></li>
+        <li><strong>Open-Meteo</strong> — weather forecasts. Requests include only a destination city name and date. <a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener" style="color:var(--accent)">open-meteo.com/terms</a></li>
+        <li><strong>Pinterest API</strong> — optional mood board integration. Read-only, token stored locally only. <a href="https://policy.pinterest.com/privacy-policy" target="_blank" rel="noopener" style="color:var(--accent)">policy.pinterest.com</a></li>
+        <li><strong>Vercel</strong> — hosting and serverless functions. <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener" style="color:var(--accent)">vercel.com/legal/privacy-policy</a></li>
+      </ul>
+    </section>
+
+    <!-- 7. Your Rights -->
+    <section class="section">
+      <span id="your-rights" class="section-anchor"></span>
+      <div class="section-header">
+        <div class="section-num">7</div>
+        <h2 class="section-title">Your Rights</h2>
+      </div>
+      <p>You have the following rights regarding your personal data:</p>
+      <ul>
+        <li><strong>Access</strong> — you can view all your data at any time within the app.</li>
+        <li><strong>Deletion</strong> — you can delete individual trips, memories, or your entire account from within the app's Settings menu.</li>
+        <li><strong>Portability</strong> — contact us if you need an export of your data.</li>
+        <li><strong>Correction</strong> — you can update your name and email from the Settings menu.</li>
+        <li><strong>Pinterest disconnection</strong> — you can revoke Pinterest access at any time from the Mood Board tab, which removes your token immediately.</li>
+      </ul>
+      <p>If you are located in the European Economic Area, you have additional rights under the GDPR including the right to lodge a complaint with your local data protection authority.</p>
+    </section>
+
+    <hr class="divider">
+
+    <!-- Contact -->
+    <section class="section">
+      <span id="contact" class="section-anchor"></span>
+      <div class="contact-card">
+        <div class="contact-icon">✉️</div>
+        <div>
+          <div class="contact-title">Questions about your privacy?</div>
+          <div class="contact-text">
+            If you have any questions about this privacy policy or how your data is handled, please reach out.<br><br>
+            <a href="mailto:privacy@voyage-app.com">privacy@voyage-app.com</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>© 2026 Voyage. All rights reserved.</span>
+      <span>This policy may be updated periodically. Continued use of the app constitutes acceptance.</span>
+    </footer>
+
+  </div>
+</body>
+</html>
