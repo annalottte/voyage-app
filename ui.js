@@ -376,19 +376,75 @@ function createDayCell(day, otherMonth, month) {
   const cellDate = new Date(currentDate.getFullYear(), month, day);
   const dateKey = getDateKey(cellDate);
   const dayData = (typeof currentTrip !== 'undefined') ? currentTrip?.days?.[dateKey] : null;
-  const hasContent = !!(dayData && (dayData.notes || (dayData.photos?.length) || (dayData.links?.length)));
 
-  if (hasContent) cell.classList.add('has-plans');
+  // Check rich notes too
+  const richContent = (typeof currentTrip !== 'undefined') ? currentTrip?.richNotes?.[dateKey]?.content : null;
+  const parsedRich = richContent ? parseNotesData(richContent) : null;
+
+  const hasNotes    = !!(parsedRich?.morning || parsedRich?.afternoon || parsedRich?.evening || parsedRich?.aiCard || dayData?.notes);
+  const hasPhotos   = !!(dayData?.photos?.length);
+  const hasLinks    = !!(dayData?.links?.length);
+  const hasContent  = hasNotes || hasPhotos || hasLinks;
+
+  // Check if this date falls within the trip range
+  const tripStart = (typeof currentTrip !== 'undefined') && currentTrip?.start_date
+    ? new Date(currentTrip.start_date + 'T00:00:00') : null;
+  const tripEnd   = (typeof currentTrip !== 'undefined') && currentTrip?.end_date
+    ? new Date(currentTrip.end_date   + 'T00:00:00') : null;
+
+  const cellTime = cellDate.getTime();
+  const isInTrip = !otherMonth && tripStart && tripEnd
+    && cellTime >= tripStart.getTime()
+    && cellTime <= tripEnd.getTime();
+
+  const isTripStart = isInTrip && cellTime === tripStart.getTime();
+  const isTripEnd   = isInTrip && cellTime === tripEnd.getTime();
+
+  if (hasContent)  cell.classList.add('has-plans');
+  if (isInTrip)    cell.classList.add('in-trip');
+  if (isTripStart) cell.classList.add('trip-start');
+  if (isTripEnd)   cell.classList.add('trip-end');
 
   const isSelected = selectedDate?.getDate() === day &&
                      selectedDate?.getMonth() === currentDate.getMonth() &&
                      !otherMonth;
   if (isSelected) cell.classList.add('selected');
 
+  // Build a one-line preview from the richest available source
+  let previewText = '';
+  if (parsedRich?.aiCard?.headline) {
+    previewText = parsedRich.aiCard.headline;
+  } else if (parsedRich?.morning) {
+    previewText = parsedRich.morning;
+  } else if (parsedRich?.afternoon) {
+    previewText = parsedRich.afternoon;
+  } else if (parsedRich?.evening) {
+    previewText = parsedRich.evening;
+  } else if (dayData?.notes) {
+    previewText = dayData.notes;
+  }
+  // Trim to a short snippet
+  previewText = previewText.replace(/\n/g, ' ').trim().substring(0, 38);
+  if (previewText.length === 38) previewText += '…';
+
+  // Content-type pills
+  const pills = [];
+  if (hasNotes)  pills.push('<span class="day-pill day-pill-notes">📝</span>');
+  if (hasPhotos) pills.push(`<span class="day-pill day-pill-photos">📸 ${dayData.photos.length}</span>`);
+  if (hasLinks)  pills.push(`<span class="day-pill day-pill-links">🔗 ${dayData.links.length}</span>`);
+
+  // Trip-range label on start/end days
+  const tripLabel = isTripStart
+    ? '<div class="trip-range-label trip-range-start">Depart</div>'
+    : isTripEnd
+      ? '<div class="trip-range-label trip-range-end">Return</div>'
+      : '';
+
   cell.innerHTML = `
+    ${tripLabel}
     <div class="day-number">${day}</div>
-    ${hasContent ? '<div class="day-preview">' + (dayData.notes?.substring(0, 30) || 'Has content') + '</div>' : ''}
-    ${hasContent ? '<div class="plan-indicator"></div>' : ''}
+    ${hasContent && previewText ? `<div class="day-preview">${previewText}</div>` : ''}
+    ${pills.length ? `<div class="day-pills">${pills.join('')}</div>` : ''}
   `;
 
   if (!otherMonth) cell.onclick = () => selectDate(day);
