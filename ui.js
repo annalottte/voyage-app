@@ -1676,6 +1676,7 @@ Write in second person ("you"). Keep it genuine and heartfelt, not generic.`;
 // =============================================
 
 function updateRightPanel() {
+  if (document.getElementById('pp-overlay')?.classList.contains('active')) return; // ← add this
   if (!currentTrip) return;
 
   // Stats
