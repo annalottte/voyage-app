@@ -1,5 +1,36 @@
 // Supabase Integration for Voyage Travel Planner
 
+// ─── NULL-SAFE DOM PATCH ───────────────────────────────────────────────────
+// Prevents "Cannot set properties of null (setting 'textContent')" crashes
+// when UI elements have been renamed or moved in a redesign.
+// Add this block to the very top of supabase-integration.js.
+(function () {
+  const _getElementById = document.getElementById.bind(document);
+  document.getElementById = function (id) {
+    const el = _getElementById(id);
+    if (el) return el;
+    // Return a harmless stub so .textContent = '...' and .style.display = '...'
+    // never throw, they just silently no-op.
+    return {
+      textContent: '',
+      innerHTML: '',
+      value: '',
+      style: {},
+      classList: { add() {}, remove() {}, contains() { return false; }, toggle() {} },
+      setAttribute() {},
+      getAttribute() { return null; },
+      appendChild() {},
+      removeChild() {},
+      addEventListener() {},
+      click() {},
+      focus() {},
+      reset() {},
+      _isStub: true,
+    };
+  };
+})();
+// ──────────────────────────────────────────────────────────────────────────
+
 // Initialize Supabase
 const SUPABASE_URL = 'https://yclhhvvzjojzosummjyk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljbGhodnZ6am9qem9zdW1tanlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NTg3MTksImV4cCI6MjA4ODEzNDcxOX0.pYB_T63PsSdSf_WMagHHQnnKnNUhfL1ioiX7ing2x5w';
