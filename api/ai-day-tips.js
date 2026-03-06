@@ -6,7 +6,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { destination, date, dayNumber, tripDates, preferences, context } = req.body;
+  const {
+    destination,
+    specificLocation,
+    date,
+    dayNumber,
+    preferences,
+    weather,
+    context,
+  } = req.body;
 
   if (!destination) {
     return res.status(400).json({ error: 'destination is required' });
@@ -18,50 +26,77 @@ export default async function handler(req, res) {
   }
 
   const preferenceDescriptions = {
-    chill: 'relaxed and low-key (cafes, parks, slow walks, reading spots)',
+    chill:       'relaxed and low-key (cafes, parks, slow walks, reading spots)',
     sightseeing: 'iconic landmarks and must-see attractions',
-    food: 'local cuisine, food markets, restaurants, tastings',
-    adventure: 'active experiences (hiking, water sports, cycling)',
-    culture: 'museums, galleries, theatre, local history',
-    shopping: 'local markets, boutiques, souvenirs',
-    nightlife: 'bars, live music, evening entertainment',
-    nature: 'parks, gardens, natural landscapes, scenic spots',
+    food:        'local cuisine, food markets, restaurants, tastings',
+    adventure:   'active experiences (hiking, water sports, cycling)',
+    culture:     'museums, galleries, theatre, local history',
+    shopping:    'local markets, boutiques, souvenirs',
+    nightlife:   'bars, live music, evening entertainment',
+    nature:      'parks, gardens, natural landscapes, scenic spots',
   };
 
-  const selectedPrefs = (preferences || [])
-    .map(p => preferenceDescriptions[p])
-    .filter(Boolean);
-
+  const selectedPrefs = (preferences || []).map(p => preferenceDescriptions[p]).filter(Boolean);
   const prefsText = selectedPrefs.length > 0
     ? `The traveler is in the mood for: ${selectedPrefs.join('; ')}.`
     : 'The traveler is open to any type of experience.';
 
-  const contextText = context ? `Additional context: ${context}` : '';
-  const dayText = dayNumber ? `This is day ${dayNumber} of the trip.` : '';
-  const dateText = date ? `The date is ${date}.` : '';
+  const locationFocus = specificLocation
+    ? `The traveler specifically wants to spend time around: ${specificLocation}. Tailor activities to be within easy reach of this area, and include it directly if relevant.`
+    : '';
 
-  const prompt = `You are an expert local travel guide. Give personalized day tips for a traveler visiting ${destination}.
+  let weatherText = '';
+  if (weather) {
+    const parts = [];
+    if (weather.description) parts.push(weather.description);
+    if (weather.tempMax !== undefined && weather.tempMin !== undefined) {
+      parts.push(`temperatures between ${weather.tempMin}°C and ${weather.tempMax}°C`);
+    } else if (weather.tempMax !== undefined) {
+      parts.push(`high of ${weather.tempMax}°C`);
+    }
+    if (weather.precipitation !== undefined && weather.precipitation > 0) {
+      parts.push(`${weather.precipitation}mm of precipitation expected`);
+    }
+    if (weather.windSpeed !== undefined && weather.windSpeed > 40) {
+      parts.push(`strong winds at ${weather.windSpeed} km/h`);
+    }
+    if (parts.length > 0) {
+      weatherText = `Weather that day: ${parts.join(', ')}. Factor this into your suggestions — recommend indoor alternatives if conditions are poor, or make the most of good weather with outdoor activities. If it's raining heavily or very windy, lean toward indoor options but still suggest one outdoor activity if conditions allow.`;
+    }
+  }
 
-${dateText} ${dayText} ${prefsText} ${contextText}
+  const dayText    = dayNumber ? `This is day ${dayNumber} of the trip.` : '';
+  const dateText   = date     ? `The date is ${date}.`                    : '';
+  const contextText = context ? `Additional context: ${context}`          : '';
 
-Respond with a JSON object in this exact format:
+  const prompt = `You are an expert local travel guide with deep knowledge of ${destination}. Give personalized day tips for a traveler.
+
+${dateText} ${dayText}
+${locationFocus}
+${weatherText}
+${prefsText}
+${contextText}
+
+Respond with a JSON object in this exact format — no extra text, just the JSON:
 {
   "headline": "A short, inspiring headline for the day (max 8 words)",
-  "intro": "One sentence setting the mood/vibe for the day",
+  "intro": "One sentence setting the mood/vibe for the day, referencing the weather if relevant",
+  "weatherNote": "One short sentence about how the weather shapes today's plan (omit key entirely if no weather data)",
   "activities": [
     {
       "time": "Morning / Afternoon / Evening",
       "title": "Activity name",
-      "description": "2-3 sentence description with specific details, insider tips, and why it's great",
+      "description": "2-3 sentence description with specific details, insider tips, and why it's great. Mention if it's a good or bad choice given the weather.",
       "emoji": "A single relevant emoji",
-      "type": "one of: chill|sightseeing|food|adventure|culture|shopping|nightlife|nature"
+      "type": "one of: chill|sightseeing|food|adventure|culture|shopping|nightlife|nature",
+      "weatherSuitable": true
     }
   ],
   "localTip": "One specific insider tip that most tourists miss",
   "bestFor": "Who this day plan is perfect for (one short phrase)"
 }
 
-Include 3-5 activities spread across the day. Be specific — use real place names, local spots, and concrete details. Avoid generic tourist traps unless they're genuinely worth it.`;
+Include 3-5 activities spread across the day. Be specific — use real place names, local spots, and concrete details. If a specific location was given, anchor activities around it. Set weatherSuitable to false for any outdoor activity that would be poor in the given conditions.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -73,7 +108,7 @@ Include 3-5 activities spread across the day. Be specific — use real place nam
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
+        max_tokens: 1800,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
@@ -87,7 +122,6 @@ Include 3-5 activities spread across the day. Be specific — use real place nam
     const data = await response.json();
     const text = data.content?.[0]?.text || '';
 
-    // Extract JSON from the response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return res.status(502).json({ error: 'Could not parse AI response' });
