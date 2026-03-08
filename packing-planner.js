@@ -189,7 +189,7 @@
 .pp-ai-select option { background:#16213e; color:#f5efe6; }
 
 /* Activity tags */
-.pp-act-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+.pp-act-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
 .pp-act-tag {
   padding:5px 12px; border-radius:16px;
   background:rgba(232,213,183,.05); border:1px solid rgba(232,213,183,.1);
@@ -199,6 +199,15 @@
 }
 .pp-act-tag:hover { border-color:rgba(232,213,183,.25); color:rgba(232,213,183,.75); }
 .pp-act-tag.on { background:rgba(217,119,87,.12); border-color:rgba(217,119,87,.4); color:#f5efe6; }
+
+/* Custom activities input row */
+.pp-custom-act-row {
+  display:flex; align-items:center; gap:8px; margin-bottom:14px;
+}
+.pp-custom-act-label {
+  font-family:'DM Sans',sans-serif; font-size:11px;
+  color:rgba(232,213,183,.3); white-space:nowrap; letter-spacing:.04em;
+}
 
 .pp-ai-gen-btn {
   width:100%; padding:11px;
@@ -671,32 +680,22 @@
     },
   ];
 
-  // Unsplash-powered mood board search (free, no auth needed for source images)
-  const MOOD_QUERIES = {
-    beach:    ['summer outfit beach','resort wear tropical','beach fashion'],
-    hiking:   ['hiking outfit mountains','outdoor adventure style','trekking fashion'],
-    city:     ['city travel outfit','urban fashion street style','city break clothes'],
-    dining:   ['elegant dinner outfit','smart casual fashion','fine dining style'],
-    business: ['business travel outfit','professional fashion','smart office style'],
-    cold:     ['winter travel outfit','cosy layer fashion','ski resort style'],
-  };
-
   // ─────────────────────────────────────────────────────────────────────────
   // STATE
   // ─────────────────────────────────────────────────────────────────────────
   let _tripId = null;
   let _tripData = null;
   let _activeTab = 'packing';
-  let _packingList = {};   // { catId: { name, emoji, items:[{id,name,qty,weight,packed}] } }
+  let _packingList = {};
   let _selectedActivities = new Set();
-  let _outfitPlan = {};    // { dateKey: { morning, evening, reuses:[] } }
+  let _outfitPlan = {};
   let _moodImages = [];
   let _splitView = false;
   let _alreadyPackedMode = false;
   let _savedTemplates = [];
   let _communityTips = [];
   let _forgotResults = [];
-  let _weightLimit = 23000; // grams (23kg default carry-on limit)
+  let _weightLimit = 23000;
 
   // ─────────────────────────────────────────────────────────────────────────
   // BUILD DOM
@@ -753,7 +752,6 @@
     `;
     document.body.appendChild(overlay);
 
-    // Events
     overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
     document.getElementById('pp-close').addEventListener('click', _close);
     document.getElementById('pp-split-btn').addEventListener('click', _toggleSplit);
@@ -779,10 +777,8 @@
     _selectedActivities.clear();
     _forgotResults = [];
 
-    // Load saved state from localStorage
     _loadState();
 
-    // Header info
     const dest = _tripData.destination || 'Your Trip';
     document.getElementById('pp-title').textContent = dest + ' — Packing';
     const start = _tripData.start_date || _tripData.startDate;
@@ -796,13 +792,9 @@
     }
     document.getElementById('pp-subtitle').textContent = sub;
 
-    // Build itinerary pane
     _buildItinPane();
-
-    // Load community tips (mocked with realistic data)
     _loadCommunityTips();
 
-    // Activate
     document.getElementById('pp-overlay').classList.add('active');
     document.body.style.overflow = 'hidden';
 
@@ -849,8 +841,6 @@
     } catch {
       _packingList = {}; _outfitPlan = {}; _savedTemplates = [];
     }
-    // Keep window reference in sync — _loadState reassigns the closure variable
-    // to a new object, so any stale window._packingList must be updated here.
     window._packingList = _packingList;
   }
 
@@ -898,7 +888,6 @@
     btn.style.borderColor  = _alreadyPackedMode ? 'rgba(76,175,80,.4)'  : '';
     btn.style.color        = _alreadyPackedMode ? '#4caf50'             : '';
     btn.title = _alreadyPackedMode ? 'Already Packed mode ON — tick items as you pack' : 'Toggle Already Packed mode';
-    // Re-render to apply packed checkboxes
     if (_activeTab === 'packing') _renderTab('packing');
   }
 
@@ -991,7 +980,6 @@
       </div>
     `;
 
-    // Wire globals needed for inline onclick (wrapped in window scope below)
     window._ppCheckForgot = () => _runForgotCheck(main);
     window._ppAddItem = (catId) => _addItem(catId);
     window._ppDelItem = (catId, itemId) => _deleteItem(catId, itemId, main);
@@ -1045,7 +1033,7 @@
             <select class="pp-ai-select" id="pp-style-input">
               <option value="carry-on only">Carry-on Only</option>
               <option value="one checked bag" selected>One Checked Bag</option>
-              <option value="pack light" >Pack Light</option>
+              <option value="pack light">Pack Light</option>
               <option value="go all out">No Limits</option>
             </select>
           </div>
@@ -1055,18 +1043,35 @@
               value="${(_weightLimit/1000).toFixed(0)}"
               oninput="window._ppSetWeightLimit(this.value)">
           </div>
+          <div class="pp-ai-field">
+            <label>Packing for <span style="opacity:.55;font-weight:400">(optional)</span></label>
+            <select class="pp-ai-select" id="pp-gender-input">
+              <option value="">No preference</option>
+              <option value="men">Men's wardrobe</option>
+              <option value="women">Women's wardrobe</option>
+            </select>
+          </div>
         </div>
         <div style="font-family:'DM Sans',sans-serif;font-size:11px;color:rgba(232,213,183,.35);margin-bottom:8px;letter-spacing:.04em;">
           TRIP ACTIVITIES — tag what you'll be doing:
         </div>
         <div class="pp-act-tags">${tags}</div>
+        <div class="pp-custom-act-row">
+          <span class="pp-custom-act-label">+ custom:</span>
+          <input
+            class="pp-ai-input"
+            id="pp-custom-activities"
+            placeholder="e.g. wedding, spa day, skiing, snorkelling…"
+            style="flex:1;font-size:12px;padding:7px 11px;"
+          >
+        </div>
         <button class="pp-ai-gen-btn" id="pp-ai-gen" onclick="window._ppGenerateList()">✦ Generate Smart Packing List</button>
       </div>
     `;
   }
 
   window._ppGenerateList = () => { const m = document.getElementById('pp-main'); if (m) _generatePackingList(m); };
-  
+
   window._ppSetWeightLimit = (v) => { _weightLimit = parseFloat(v) * 1000 || 23000; };
 
   function _weightsHTML() {
@@ -1182,14 +1187,21 @@
   };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // AI PACKING LIST GENERATION
+  // AI PACKING LIST GENERATION  ← PATCHED: gender + custom activities
   // ─────────────────────────────────────────────────────────────────────────
   async function _generatePackingList(main) {
-    console.log('🎒 fired, main:', main, 'dest-input:', document.getElementById('pp-dest-input'));
-    const dest     = document.getElementById('pp-dest-input')?.value?.trim()  || _tripData.destination || '';
-    const nights   = parseInt(document.getElementById('pp-nights-input')?.value) || _calcNights() || 7;
-    const style    = document.getElementById('pp-style-input')?.value || 'one checked bag';
-    const activities = Array.from(_selectedActivities);
+    // ── Read all inputs ──────────────────────────────────────────────────
+    const dest       = document.getElementById('pp-dest-input')?.value?.trim()  || _tripData.destination || '';
+    const nights     = parseInt(document.getElementById('pp-nights-input')?.value) || _calcNights() || 7;
+    const style      = document.getElementById('pp-style-input')?.value || 'one checked bag';
+    const gender     = document.getElementById('pp-gender-input')?.value || '';
+    const customActs = (document.getElementById('pp-custom-activities')?.value || '').trim();
+
+    // Merge tag selections + custom free-text activities
+    const activities = [
+      ...Array.from(_selectedActivities),
+      ...(customActs ? customActs.split(/[,;]+/).map(s => s.trim()).filter(Boolean) : []),
+    ];
 
     const genBtn = document.getElementById('pp-ai-gen');
     if (genBtn) { genBtn.disabled = true; genBtn.textContent = 'Generating…'; }
@@ -1197,7 +1209,6 @@
     const cats = document.getElementById('pp-cats');
     if (cats) cats.innerHTML = `<div class="pp-loading"><div class="pp-spin"></div>Building your personalised packing list for ${dest}…</div>`;
 
-    // Build weather summary from trip days if available
     let weatherSummary = '';
     const start = _tripData.start_date || _tripData.startDate;
     const end   = _tripData.end_date   || _tripData.endDate;
@@ -1205,13 +1216,20 @@
       weatherSummary = `Trip runs ${start} to ${end}.`;
     }
 
+    // ── Build gender line for prompt ─────────────────────────────────────
+    const genderLine = gender === 'men'
+      ? "Wardrobe style: Men's clothing"
+      : gender === 'women'
+        ? "Wardrobe style: Women's clothing"
+        : '';
+
     const prompt = `You are an expert travel packer. Create a smart, personalised packing list.
 
 Destination: ${dest}
 Trip length: ${nights} nights
 Packing style: ${style}
 Activities: ${activities.length ? activities.join(', ') : 'general sightseeing and city exploring'}
-${weatherSummary}
+${genderLine ? genderLine + '\n' : ''}${weatherSummary}
 
 Return ONLY valid JSON (no markdown, no text outside JSON) with this exact structure:
 {
@@ -1237,8 +1255,10 @@ Rules:
 - If activities include beach: swimwear category
 - If activities include hiking: gear category with specific equipment
 - If activities include business: formal wear category
+- If activities include wedding or any formal event: include a dedicated formal attire category
 - If packing style is carry-on only: keep total items lean
-- Think about the destination's culture and weather`;
+- Think about the destination's culture and weather
+- If wardrobe style is specified (men's or women's), tailor ALL clothing items accordingly — e.g. for women's: dresses, skirts, heels, women's swimwear; for men's: trousers, dress shirts, men's shoes`;
 
     try {
       const resp = await fetch('/api/ai-day-tips', {
@@ -1250,19 +1270,16 @@ Rules:
       if (!resp.ok) throw new Error('api');
       const data = await resp.json();
 
-      // Parse the AI response
       let parsed;
       if (data.categories) {
         parsed = data;
       } else if (data.content) {
-        // raw message format
         const txt = (data.content[0]?.text||'').replace(/```json|```/g,'').trim();
         parsed = JSON.parse(txt);
       } else {
         throw new Error('unexpected format');
       }
 
-      // Merge into packing list (don't overwrite existing)
       (parsed.categories||[]).forEach(cat => {
         const catId = cat.id || _slugify(cat.name);
         if (!_packingList[catId]) {
@@ -1280,7 +1297,6 @@ Rules:
 
     } catch (err) {
       console.error('Packing generation error:', err);
-      // Fall back to a sensible default based on activities
       _loadFallbackList(activities, nights, style);
       _renderPackingTab(main);
       _updateScoreBadge();
@@ -1288,10 +1304,9 @@ Rules:
   }
 
   function _loadFallbackList(activities, nights, style) {
-    // Smart fallback: pick the most relevant built-in template
     let templateId = 'city-weekend';
-    if (activities.includes('beach'))   templateId = 'beach-week';
-    if (activities.includes('hiking'))  templateId = 'hiking-trip';
+    if (activities.includes('beach'))    templateId = 'beach-week';
+    if (activities.includes('hiking'))   templateId = 'hiking-trip';
     if (activities.includes('business')) templateId = 'business';
     _applyTemplate(TEMPLATES.find(t=>t.id===templateId) || TEMPLATES[0]);
   }
@@ -1303,7 +1318,6 @@ Rules:
     const forgotBtn = document.querySelector('.pp-forgot-check-btn');
     if (forgotBtn) { forgotBtn.disabled = true; forgotBtn.innerHTML = '<span>🔍</span> Checking…'; }
 
-    // Build itinerary summary
     const itinLines = [];
     const start = _tripData.start_date || _tripData.startDate;
     const end   = _tripData.end_date   || _tripData.endDate;
@@ -1318,7 +1332,6 @@ Rules:
       }
     }
 
-    // Build current packing list summary
     const packingItems = Object.values(_packingList).flatMap(c=>c.items.map(i=>i.name));
 
     const prompt = `You are a travel packing expert. Review this traveler's packing list against their itinerary and identify gaps.
@@ -1388,7 +1401,6 @@ Be specific and reference actual itinerary details. Keep it concise.`;
     _saveState(); _updateScoreBadge();
     const main = document.getElementById('pp-main');
     _renderPackingTab(main);
-    // Scroll to and focus the same category add row
     setTimeout(()=>{ document.getElementById(`pp-add-${catId}`)?.focus(); }, 50);
   }
 
@@ -1442,15 +1454,13 @@ Be specific and reference actual itinerary details. Keep it concise.`;
     }
     const tpl = TEMPLATES.find(t=>t.id===tplId);
     if (!tpl) return;
-  
+
     if (Object.keys(_packingList).length > 0) {
-      const choice = _showTemplateChoiceModal(tpl.label, () => {
-        // Replace
+      _showTemplateChoiceModal(tpl.label, () => {
         _packingList = {};
         _applyTemplate(tpl);
         _saveState(); _renderPackingTab(main); _updateScoreBadge();
       }, () => {
-        // Merge
         _applyTemplate(tpl);
         _saveState(); _renderPackingTab(main); _updateScoreBadge();
       });
@@ -1480,62 +1490,60 @@ Be specific and reference actual itinerary details. Keep it concise.`;
     _savedTemplates.push({ id, label:name, emoji:'📋', data: JSON.parse(JSON.stringify(_packingList)) });
     _saveState(); _renderPackingTab(main);
   }
-  
+
   function _showTemplateChoiceModal(tplLabel, onReplace, onMerge) {
-  // Remove any existing
-  document.getElementById('pp-tpl-modal')?.remove();
+    document.getElementById('pp-tpl-modal')?.remove();
 
-  const modal = document.createElement('div');
-  modal.id = 'pp-tpl-modal';
-  modal.style.cssText = `
-    position:fixed; inset:0; z-index:8000;
-    display:flex; align-items:center; justify-content:center;
-    background:rgba(8,6,4,.75); backdrop-filter:blur(6px);
-    animation:pp-fade .18s ease;
-  `;
-  modal.innerHTML = `
-    <div style="
-      background:#1a1916; border:1px solid rgba(232,213,183,.12);
-      border-radius:16px; padding:28px 28px 24px; max-width:360px; width:90%;
-      box-shadow:0 32px 80px rgba(0,0,0,.5);
-      animation:pp-up .28s cubic-bezier(.16,1,.3,1);
-    ">
-      <div style="font-family:'Fraunces',serif;font-size:18px;color:#f5efe6;margin-bottom:8px;">
-        Load "${tplLabel}"?
+    const modal = document.createElement('div');
+    modal.id = 'pp-tpl-modal';
+    modal.style.cssText = `
+      position:fixed; inset:0; z-index:8000;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(8,6,4,.75); backdrop-filter:blur(6px);
+      animation:pp-fade .18s ease;
+    `;
+    modal.innerHTML = `
+      <div style="
+        background:#1a1916; border:1px solid rgba(232,213,183,.12);
+        border-radius:16px; padding:28px 28px 24px; max-width:360px; width:90%;
+        box-shadow:0 32px 80px rgba(0,0,0,.5);
+        animation:pp-up .28s cubic-bezier(.16,1,.3,1);
+      ">
+        <div style="font-family:'Fraunces',serif;font-size:18px;color:#f5efe6;margin-bottom:8px;">
+          Load "${tplLabel}"?
+        </div>
+        <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(232,213,183,.5);margin-bottom:22px;line-height:1.6;">
+          You already have a packing list. What would you like to do?
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <button id="pp-tpl-replace" style="
+            padding:11px 16px; border-radius:10px; border:1px solid rgba(217,119,87,.35);
+            background:rgba(217,119,87,.12); color:#d97757;
+            font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
+            cursor:pointer; text-align:left; transition:all .15s;
+          ">🔄 Replace — start fresh with this template</button>
+          <button id="pp-tpl-merge" style="
+            padding:11px 16px; border-radius:10px; border:1px solid rgba(232,213,183,.15);
+            background:rgba(232,213,183,.05); color:rgba(232,213,183,.7);
+            font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
+            cursor:pointer; text-align:left; transition:all .15s;
+          ">➕ Merge — add to my existing list</button>
+          <button id="pp-tpl-cancel" style="
+            padding:9px 16px; border-radius:10px; border:1px solid transparent;
+            background:transparent; color:rgba(232,213,183,.35);
+            font-family:'DM Sans',sans-serif; font-size:13px;
+            cursor:pointer; text-align:center; transition:all .15s;
+          ">Cancel</button>
+        </div>
       </div>
-      <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(232,213,183,.5);margin-bottom:22px;line-height:1.6;">
-        You already have a packing list. What would you like to do?
-      </div>
-      <div style="display:flex;flex-direction:column;gap:9px;">
-        <button id="pp-tpl-replace" style="
-          padding:11px 16px; border-radius:10px; border:1px solid rgba(217,119,87,.35);
-          background:rgba(217,119,87,.12); color:#d97757;
-          font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
-          cursor:pointer; text-align:left; transition:all .15s;
-        ">🔄 Replace — start fresh with this template</button>
-        <button id="pp-tpl-merge" style="
-          padding:11px 16px; border-radius:10px; border:1px solid rgba(232,213,183,.15);
-          background:rgba(232,213,183,.05); color:rgba(232,213,183,.7);
-          font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
-          cursor:pointer; text-align:left; transition:all .15s;
-        ">➕ Merge — add to my existing list</button>
-        <button id="pp-tpl-cancel" style="
-          padding:9px 16px; border-radius:10px; border:1px solid transparent;
-          background:transparent; color:rgba(232,213,183,.35);
-          font-family:'DM Sans',sans-serif; font-size:13px;
-          cursor:pointer; text-align:center; transition:all .15s;
-        ">Cancel</button>
-      </div>
-    </div>
-  `;
+    `;
 
-  document.body.appendChild(modal);
-
-  document.getElementById('pp-tpl-replace').onclick = () => { modal.remove(); onReplace(); };
-  document.getElementById('pp-tpl-merge').onclick   = () => { modal.remove(); onMerge(); };
-  document.getElementById('pp-tpl-cancel').onclick  = () => modal.remove();
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-}
+    document.body.appendChild(modal);
+    document.getElementById('pp-tpl-replace').onclick = () => { modal.remove(); onReplace(); };
+    document.getElementById('pp-tpl-merge').onclick   = () => { modal.remove(); onMerge(); };
+    document.getElementById('pp-tpl-cancel').onclick  = () => modal.remove();
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // PACK-LIGHT SCORE
@@ -1544,13 +1552,12 @@ Be specific and reference actual itinerary details. Keep it concise.`;
     const total = _countItems();
     if (!total) return { score:0, tier:'none' };
     const nights  = _calcNights() || 7;
-    const weight  = _totalWeight() / 1000; // kg
+    const weight  = _totalWeight() / 1000;
     const reuses  = _countOutfitReuses();
-    // Score: fewer items per night + less weight + more reuses = higher score
     let score = 100;
-    score -= Math.max(0, (total/nights - 4) * 5);   // >4 items per night penalises
-    score -= Math.max(0, (weight - 7) * 3);           // >7kg penalises
-    score += reuses * 4;                               // outfit reuses reward
+    score -= Math.max(0, (total/nights - 4) * 5);
+    score -= Math.max(0, (weight - 7) * 3);
+    score += reuses * 4;
     score = Math.max(0, Math.min(100, Math.round(score)));
     let tier = score >= 80 ? 'gold' : score >= 55 ? 'silver' : 'bronze';
     return { score, tier };
@@ -1613,7 +1620,6 @@ Be specific and reference actual itinerary details. Keep it concise.`;
       const val = prompt(`${slot} outfit for ${dk}:`, cur||'');
       if (val === null) return;
       if (!_outfitPlan[dk]) _outfitPlan[dk] = {};
-      // Check if it's a re-use
       const allOutfits = Object.values(_outfitPlan).flatMap(d=>Object.values(d)).filter(Boolean);
       const isReuse = val && allOutfits.filter(o=>o===val).length > 0;
       _outfitPlan[dk][slot] = val;
@@ -1707,7 +1713,6 @@ Be specific and reference actual itinerary details. Keep it concise.`;
 
     window._ppMoodSearch = () => _searchMoodImages();
 
-    // Auto-load if we have a destination
     if (dest) setTimeout(_searchMoodImages, 100);
   }
 
@@ -1721,7 +1726,6 @@ Be specific and reference actual itinerary details. Keep it concise.`;
         <span class="pp-mood-ph-icon" style="animation:pp-spin 1s linear infinite">⟳</span>
       </div>`).join('');
 
-    // Use Unsplash Source (no API key needed, free)
     const keywords = query.split(' ').slice(0,3).join(',');
     const imgs = Array.from({length:8},(_,i)=>{
       const w = 300 + (i%3)*50;
@@ -1779,13 +1783,7 @@ Be specific and reference actual itinerary details. Keep it concise.`;
 
   function _loadCommunityTips() {
     const dest = (_tripData.destination||'').toLowerCase();
-    const month = (() => {
-      const s = _tripData.start_date||_tripData.startDate;
-      if (!s) return '';
-      return new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'long'});
-    })();
 
-    // Realistic-feeling generated tips based on destination keywords
     const generic = [
       { name:'Sarah K.', location:'Verified traveller', votes:24,
         text:`Pack a lightweight scarf — it doubles as a blanket on flights, a cover-up for temples, and looks great in photos. Absolute travel staple.` },
@@ -1797,19 +1795,18 @@ Be specific and reference actual itinerary details. Keep it concise.`;
         text:`Never check your bag if you can help it. A 40L carry-on is enough for 2 weeks if you do laundry once. Saves time and baggage fees.` },
     ];
 
-    // Add destination-specific tips
     const destTips = [];
     if (dest.includes('japan')||dest.includes('tokyo')||dest.includes('kyoto')) {
       destTips.push(
         { name:'Yuki T.', location:'Japan (local)', votes:41,
           text:`In Japan, bring slip-on shoes — you'll be removing them constantly at temples, ryokans, and some restaurants. Worth the space.` },
-        { name:'Alex W.', location:'Visited ${month||"spring"} last year', votes:33,
+        { name:'Alex W.', location:'Visited spring last year', votes:33,
           text:`Japan is very hot and humid in summer, freezing in winter. Check the season and pack accordingly. Their 7-Eleven sells most toiletries cheaply if you forget anything.` }
       );
     } else if (dest.includes('barcelona')||dest.includes('spain')||dest.includes('madrid')) {
       destTips.push(
         { name:'Carmen R.', location:'Barcelona local', votes:38,
-          text:`In ${month||'spring'}, Barcelona evenings can be surprisingly cool. Bring a light layer — locals always laugh at tourists who packed only for heat.` },
+          text:`Barcelona evenings can be surprisingly cool even in summer. Bring a light layer — locals always laugh at tourists who packed only for heat.` },
         { name:'Diego A.', location:'Visited last year', votes:27,
           text:`Spaniards dress smartly — you'll feel more comfortable and get better service in restaurants if you bring at least one polished outfit.` }
       );
@@ -1880,7 +1877,6 @@ Be specific and reference actual itinerary details. Keep it concise.`;
   function _uid() { return Math.random().toString(36).slice(2,9); }
   function _slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g,'-'); }
 
-  // Expose packingList for inline event handlers
   window._packingList = _packingList;
 
   // ─────────────────────────────────────────────────────────────────────────
