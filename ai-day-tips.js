@@ -499,13 +499,25 @@
           weather:          wx,
         }),
       });
-      if (!resp.ok) throw new Error('api');
+      if (!resp.ok) {
+        let errorMessage = 'Couldn\'t load ideas right now. Please try again.';
+        try {
+          const errorData = await resp.json();
+          errorMessage = errorData?.error || errorData?.message || errorMessage;
+        } catch {
+          const errorText = await resp.text();
+          if (errorText) errorMessage = errorText;
+        }
+        throw new Error(errorMessage);
+      }
       const data = await resp.json();
       _lastData = { ...data, _loc: loc||null, _wx: wx, _vibe: vibe||null };
       _render(_lastData);
       gen.textContent = '↺ Regenerate';
-    } catch {
-      results.innerHTML = `<div class="adt-error">Couldn't load ideas right now.<br>Check your API key and try again.</div>`;
+    } catch (err) {
+      const errorMessage = err?.message || 'Couldn\'t load ideas right now. Please try again.';
+      results.innerHTML = `<div class="adt-error"></div>`;
+      results.querySelector('.adt-error').textContent = errorMessage;
       gen.textContent = '✦ Try Again';
     }
     gen.disabled = false;

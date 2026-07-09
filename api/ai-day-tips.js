@@ -2,13 +2,30 @@
 // Vercel serverless function — handles both day tips AND packing list requests
 // Set ANTHROPIC_API_KEY in your Vercel environment variables
 
+const DEFAULT_ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest';
+
+function getAnthropicError(rawError, status) {
+  let parsed = null;
+  try { parsed = JSON.parse(rawError); } catch {}
+
+  const errorType = parsed?.error?.type || parsed?.type || null;
+  const errorMessage = parsed?.error?.message || '';
+  if (errorType === 'not_found_error' && /model/i.test(errorMessage)) {
+    return { error: 'AI model is currently unavailable', code: 'anthropic_model_not_found' };
+  }
+  if (status === 401 || status === 403) {
+    return { error: 'AI service authentication failed', code: 'anthropic_auth_error' };
+  }
+  return { error: 'AI service is currently unavailable. Please try again soon.', code: 'anthropic_request_failed' };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
+  if (!apiKey) return res.status(500).json({ error: 'AI service is not configured', code: 'anthropic_key_missing' });
 
   // ── Packing planner passes a raw prompt ──────────────────────────────────
   if (req.body?._packingRequest) {
@@ -24,7 +41,7 @@ export default async function handler(req, res) {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: DEFAULT_ANTHROPIC_MODEL,
           max_tokens: 2000,
           messages: [{ role: 'user', content: prompt }],
         }),
@@ -32,8 +49,13 @@ export default async function handler(req, res) {
 
       if (!response.ok) {
         const err = await response.text();
-        console.error('Anthropic error (packing):', err);
-        return res.status(502).json({ error: 'AI request failed' });
+        console.error('Anthropic error (packing):', {
+          status: response.status,
+          model: DEFAULT_ANTHROPIC_MODEL,
+          error: err,
+        });
+        const safeError = getAnthropicError(err, response.status);
+        return res.status(502).json(safeError);
       }
 
       const data   = await response.json();
@@ -42,7 +64,7 @@ export default async function handler(req, res) {
 
       // Try to extract JSON (array or object)
       const match = clean.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
-      if (!match) return res.status(502).json({ error: 'Could not parse AI response', rawText: text });
+      if (!match) return res.status(502).json({ error: 'Could not parse AI response', code: 'ai_response_parse_failed' });
 
       return res.status(200).json(JSON.parse(match[0]));
     } catch (err) {
@@ -147,7 +169,7 @@ Include 3-5 activities across the day. Use real place names and concrete details
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: DEFAULT_ANTHROPIC_MODEL,
         max_tokens: 1800,
         messages: [{ role: 'user', content: prompt }],
       }),
@@ -155,8 +177,13 @@ Include 3-5 activities across the day. Use real place names and concrete details
 
     if (!response.ok) {
       const err = await response.text();
-      console.error('Anthropic error (day tips):', err);
-      return res.status(502).json({ error: 'AI request failed' });
+      console.error('Anthropic error (day tips):', {
+        status: response.status,
+        model: DEFAULT_ANTHROPIC_MODEL,
+        error: err,
+      });
+      const safeError = getAnthropicError(err, response.status);
+      return res.status(502).json(safeError);
     }
 
     const data  = await response.json();
