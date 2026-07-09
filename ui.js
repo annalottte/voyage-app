@@ -1647,13 +1647,15 @@ Write in second person ("you"). Keep it genuine and heartfelt, not generic.`;
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
     const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.error || data?.message || 'Could not generate summary right now.');
+    }
     const text = data.content?.[0]?.text || 'Could not generate summary. Please try again.';
 
     textEl.classList.remove('ai-typing');
