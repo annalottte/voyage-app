@@ -501,12 +501,14 @@
       });
       if (!resp.ok) {
         let errorMessage = 'Couldn\'t load ideas right now. Please try again.';
-        try {
-          const errorData = await resp.json();
-          errorMessage = errorData?.error || errorData?.message || errorMessage;
-        } catch {
-          const errorText = await resp.text();
-          if (errorText) errorMessage = errorText;
+        const errorText = await resp.text();
+        if (errorText) {
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData?.error || errorData?.message || errorMessage;
+          } catch {
+            errorMessage = errorText;
+          }
         }
         throw new Error(errorMessage);
       }

@@ -64,7 +64,13 @@ export default async function handler(req, res) {
 
       // Try to extract JSON (array or object)
       const match = clean.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
-      if (!match) return res.status(502).json({ error: 'Could not parse AI response', code: 'ai_response_parse_failed' });
+      if (!match) {
+        console.error('Could not parse Anthropic packing response:', {
+          model: DEFAULT_ANTHROPIC_MODEL,
+          responsePreview: text.slice(0, 500),
+        });
+        return res.status(502).json({ error: 'Could not parse AI response', code: 'ai_response_parse_failed' });
+      }
 
       return res.status(200).json(JSON.parse(match[0]));
     } catch (err) {
